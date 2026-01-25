@@ -63,6 +63,23 @@ type ITaskAnsibleService interface {
 	DeleteTask(c *gin.Context, taskID uint)                          // 删除任务
 	GetTasksByName(c *gin.Context, name string)                      // 根据名称模糊查询任务
 	GetTasksByType(c *gin.Context, taskType int)                     // 根据类型查询任务
+	UpdateTask(c *gin.Context, taskID uint, req *UpdateTaskRequest)  // 修改任务
+}
+
+// UpdateTaskRequest 修改任务请求参数
+type UpdateTaskRequest struct {
+	Name               string            `json:"name"`
+	HostGroups         map[string][]uint `json:"hostGroups"`
+	GitRepo            string            `json:"gitRepo"`
+	PlaybookPaths      []string          `json:"playbookPaths"`
+	Variables          map[string]string `json:"variables"`
+	ExtraVars          string            `json:"extraVars"`
+	CliArgs            string            `json:"cliArgs"`
+	UseConfig          int               `json:"useConfig"`
+	InventoryConfigID  *uint             `json:"inventoryConfigId"`
+	GlobalVarsConfigID *uint             `json:"globalVarsConfigId"`
+	ExtraVarsConfigID  *uint             `json:"extraVarsConfigId"`
+	CliArgsConfigID    *uint             `json:"cliArgsConfigId"`
 }
 
 // CreateTaskRequest 创建任务请求参数
@@ -320,7 +337,7 @@ func (s *TaskAnsibleServiceImpl) DeleteTask(c *gin.Context, taskID uint) {
 		}()
 
 		// 删除任务目录: task/{taskID}/{taskName}
-		taskDir := fmt.Sprintf("task/%d/%s", taskID, task.Name)
+		taskDir := fmt.Sprintf("task/%d", taskID)
 		if _, err := os.Stat(taskDir); err == nil {
 			os.RemoveAll(taskDir)
 		}
@@ -637,12 +654,36 @@ func (s *TaskAnsibleServiceImpl) GetTaskDetail(c *gin.Context, taskID uint) {
 		}
 	}
 
-	// 构建精简的任务信息
+	// 解析HostGroups
+	var hostGroups map[string][]uint
+	json.Unmarshal([]byte(task.HostGroups), &hostGroups)
+
+	// 解析GlobalVars
+	var variables map[string]string
+	json.Unmarshal([]byte(task.GlobalVars), &variables)
+
+	// 构建完整的任务信息
 	taskInfo := gin.H{
-		"ID":        task.ID,        // 父任务ID
-		"Name":      task.Name,      // 父任务名称
-		"TaskCount": task.TaskCount, // 子任务数量
-		"Works":     works,          // 子任务列表
+		"ID":                 task.ID,
+		"Name":               task.Name,
+		"Type":               task.Type,
+		"Description":        task.Description,
+		"GitRepo":            task.GitRepo,
+		"HostGroups":         hostGroups,
+		"GlobalVars":         variables,
+		"ExtraVars":          task.ExtraVars,
+		"CliArgs":            task.CliArgs,
+		"Status":             task.Status,
+		"TaskCount":          task.TaskCount,
+		"TotalDuration":      task.TotalDuration,
+		"UseConfig":          task.UseConfig,
+		"InventoryConfigID":  task.InventoryConfigID,
+		"GlobalVarsConfigID": task.GlobalVarsConfigID,
+		"ExtraVarsConfigID":  task.ExtraVarsConfigID,
+		"CliArgsConfigID":    task.CliArgsConfigID,
+		"CreatedAt":          task.CreatedAt,
+		"UpdatedAt":          task.UpdatedAt,
+		"Works":              works,
 	}
 
 	result.Success(c, gin.H{
@@ -1769,4 +1810,77 @@ func (s *TaskAnsibleServiceImpl) createK8sSubTask(taskID uint, projectDir string
 	}
 
 	return nil
+}
+
+// UpdateTask 修改任务
+func (s *TaskAnsibleServiceImpl) UpdateTask(c *gin.Context, taskID uint, req *UpdateTaskRequest) {
+	// 1. 获取任务
+	task, err := s.dao.GetTaskDetail(taskID)
+	if err != nil {
+		result.Failed(c, 500, fmt.Sprintf("获取任务失败: %v", err))
+		return
+	}
+
+	// 2. 检查任务状态，运行中不可修改
+	if task.Status == 2 {
+		result.Failed(c, 400, "任务正在运行中，无法修改")
+		return
+	}
+
+	// 3. 更新基本信息
+	if req.Name != "" {
+		task.Name = req.Name
+	}
+
+	// 更新配置选项
+	task.UseConfig = req.UseConfig
+	task.InventoryConfigID = req.InventoryConfigID
+	task.GlobalVarsConfigID = req.GlobalVarsConfigID
+	task.ExtraVarsConfigID = req.ExtraVarsConfigID
+	task.CliArgsConfigID = req.CliArgsConfigID
+
+	// 更新变量信息
+	if req.ExtraVars != "" {
+		task.ExtraVars = req.ExtraVars
+	}
+	if req.CliArgs != "" {
+		task.CliArgs = req.CliArgs
+	}
+
+	// 4. 更新Git信息 (仅Type=2)
+	if task.Type == 2 && req.GitRepo != "" {
+		task.GitRepo = req.GitRepo
+	}
+
+	// 5. 更新HostGroups
+	if len(req.HostGroups) > 0 {
+		task.HostGroups = toJSON(req.HostGroups)
+		// 重新计算AllHostIDs
+		allHostIDs := make([]uint, 0)
+		idMap := make(map[uint]bool)
+		for _, ids := range req.HostGroups {
+			for _, id := range ids {
+				if id > 0 && !idMap[id] {
+					idMap[id] = true
+					allHostIDs = append(allHostIDs, id)
+				}
+			}
+		}
+		task.AllHostIDs = toJSON(allHostIDs)
+	}
+
+	// 6. 更新GlobalVars
+	if len(req.Variables) > 0 {
+		task.GlobalVars = toJSON(req.Variables)
+	}
+
+	task.UpdatedAt = time.Now()
+
+	// 7. 保存
+	if err := s.dao.Update(task); err != nil {
+		result.Failed(c, 500, fmt.Sprintf("更新任务失败: %v", err))
+		return
+	}
+
+	result.Success(c, task)
 }
