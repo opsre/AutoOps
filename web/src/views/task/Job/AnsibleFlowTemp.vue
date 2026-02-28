@@ -1,7 +1,7 @@
 <template>
   <div class="ansible-flow-container" style="margin-top: -5px !important; top: -5px !important;">
     <div class="flow-header">
-      <el-button v-authority="['task:ansible:jobstart']" @click="startAnsibleTask" type="primary" size="medium" style="height: 40px; padding: 0 20px;" :loading="starting">
+      <el-button v-if="!historyMode" v-authority="['task:ansible:jobstart']" @click="startAnsibleTask" type="primary" size="medium" style="height: 40px; padding: 0 20px;" :loading="starting">
         <el-icon size="20"><VideoPlay /></el-icon>
         <span style="margin-left: 8px;">启动任务</span>
       </el-button>
@@ -63,13 +63,17 @@
       </div>
     </div>
     <div style="position: fixed; z-index: 9999;">
-      <ansible-log-dialog ref="ansibleLogDialog"></ansible-log-dialog>
+      <ansible-log-dialog 
+        ref="ansibleLogDialog"
+        :history-mode="historyMode"
+        :history-id="historyId"
+      ></ansible-log-dialog>
     </div>
   </div>
 </template>
 
 <script>
-import { GetAnsibleTaskLog, StartAnsibleTaskFlow, GetAnsibleTaskDetail } from '@/api/task'
+import { GetAnsibleTaskLog, StartAnsibleTaskFlow, GetAnsibleTaskDetail, GetAnsibleHistoryDetail } from '@/api/task'
 import { VideoPlay, Refresh } from '@element-plus/icons-vue'
 import AnsibleLogDialog from '@/views/task/Job/AnsibleLogDialog.vue'
 
@@ -99,6 +103,14 @@ export default {
       validator: (value) => {
         return value !== null && value !== undefined && value !== ''
       }
+    },
+    historyMode: {
+      type: Boolean,
+      default: false
+    },
+    historyId: {
+      type: [String, Number],
+      default: null
     }
   },
   watch: {
@@ -125,9 +137,19 @@ export default {
       console.log('原始Ansible steps数据:', JSON.parse(JSON.stringify(this.steps)));
       
       const result = this.steps.map((step, index) => {
-        // 直接使用API返回的status，并转换为字符串状态
+        // Handle both integer (1-4) and string status from backend
         const statusValue = step.status !== undefined ? step.status : 1;
-        const status = ['pending', 'active', 'completed', 'error'][statusValue - 1] || 'pending';
+        let status = 'pending';
+        
+        if (typeof statusValue === 'number') {
+           status = ['pending', 'active', 'completed', 'error'][statusValue - 1] || 'pending';
+        } else if (typeof statusValue === 'string') {
+           const lower = statusValue.toLowerCase();
+           if (lower === 'success' || lower === 'completed') status = 'completed';
+           else if (lower === 'running' || lower === 'active') status = 'active';
+           else if (lower === 'failed' || lower === 'error') status = 'error';
+           else status = lower; // fallback
+        }
         
         console.log(`Ansible步骤 ${step.work_id || index} 状态映射:`, 
                    `原始: ${step.status}, 最终: ${status}`);
@@ -153,6 +175,10 @@ export default {
       return `status-${step.status}`;
     },
     async startAnsibleTask() {
+      if (this.historyMode) {
+        this.$message.warning('历史记录模式下无法启动任务');
+        return;
+      }
       this.starting = true;
       try {
         console.log('Starting Ansible task with taskId:', this.taskId);
@@ -177,36 +203,60 @@ export default {
     async handleRefresh() {
       try {
         console.log('开始刷新Ansible任务状态...');
-        console.log('使用taskId:', this.taskId);
         
-        const response = await GetAnsibleTaskDetail(this.taskId);
-        console.log('Ansible API完整响应:', response);
-        
-        if (!response?.data?.data?.task_info) {
-          throw new Error('无效的API响应');
+        let updatedSteps = [];
+
+        if (this.historyMode && this.historyId) {
+           console.log('刷新历史记录模式...', 'taskId:', this.taskId, 'historyId:', this.historyId);
+           const historyResponse = await GetAnsibleHistoryDetail({
+               id: this.taskId,
+               historyId: this.historyId
+           });
+           
+           if (!historyResponse?.data?.data) {
+               throw new Error('无效的历史详情响应');
+           }
+           
+           const historyData = historyResponse.data.data;
+           const works = historyData.WorkHistories || [];
+           
+           updatedSteps = works.map((work, index) => ({
+               task_id: this.taskId,
+               work_id: work.WorkID,
+               entry_file_name: work.HostName, // Note: in history detail, HostName might be used for entry_file_name
+               status: work.Status,
+               duration: work.Duration,
+               order: index + 1
+           }));
+
+        } else {
+            console.log('使用taskId:', this.taskId);
+            
+            const response = await GetAnsibleTaskDetail(this.taskId);
+            console.log('Ansible API完整响应:', response);
+            
+            if (!response?.data?.data?.task_info) {
+              throw new Error('无效的API响应');
+            }
+            
+            // 深度拷贝API数据
+            const apiData = JSON.parse(JSON.stringify(response.data.data.task_info));
+            console.log('原始Ansible API数据:', apiData);
+            
+            updatedSteps = (apiData.Works || []).map((work, index) => {
+              // 保留原始status
+              const statusValue = work.status ?? 1;
+              
+              return {
+                task_id: this.taskId,
+                work_id: work.workid,
+                entry_file_name: work.EntryFileName || `Work ${index + 1}`,
+                status: statusValue, // 保留原始值
+                duration: work.Duration || 0,
+                order: index + 1
+              };
+            });
         }
-        
-        // 深度拷贝API数据
-        const apiData = JSON.parse(JSON.stringify(response.data.data.task_info));
-        console.log('原始Ansible API数据:', apiData);
-        
-        const updatedSteps = (apiData.Works || []).map((work, index) => {
-          // 保留原始status
-          const statusValue = work.status ?? 1;
-          const status = ['pending', 'active', 'completed', 'error'][statusValue - 1] || 'pending';
-          
-          console.log(`Ansible步骤 ${work.workid || index} 状态映射:`, 
-                     `原始: ${work.status}, 最终: ${status}`);
-          
-          return {
-            task_id: this.taskId,
-            work_id: work.workid,
-            entry_file_name: work.EntryFileName || `Work ${index + 1}`,
-            status: statusValue, // 保留原始值
-            duration: work.Duration || 0,
-            order: index + 1
-          };
-        });
         
         console.log('更新后的Ansible步骤数据:', JSON.parse(JSON.stringify(updatedSteps)));
         

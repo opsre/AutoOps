@@ -154,6 +154,7 @@
           <el-icon><FolderOpened /></el-icon>
           <span>{{ taskData.gitRepo }}</span>
         </div>
+        
       </el-card>
 
       <!-- 全局变量 (手动任务) -->

@@ -229,6 +229,65 @@ export function StopJob(params) {
   })
 }
 
+// 获取Ansible配置列表
+export function GetAnsibleConfigList(params) {
+  return request({
+    url: '/config/ansible',
+    method: 'get',
+    params
+  })
+}
+
+// 创建Ansible配置
+export function CreateAnsibleConfig(data) {
+  return request({
+    url: '/config/ansible',
+    method: 'post',
+    data,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+}
+
+// 更新Ansible配置
+/**
+ * 
+ * body参数示例：
+ {
+  "content": "string",
+  "name": "string",
+  "remark": "string",
+  "type": 0
+}
+ */
+export function UpdateAnsibleConfig(data) {
+  return request({
+    url: `/config/ansible/${data.id}`,
+    method: 'put',
+    data,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+}
+
+// 获取Ansible配置详情
+export function GetAnsibleConfigById(id) {
+  return request({
+    url: `/config/ansible/${id}`,
+    method: 'get'
+  })
+}
+
+// 删除Ansible配置
+export function DeleteAnsibleConfig(id) {
+  return request({
+    url: `/config/ansible/${id}`,
+    method: 'delete'
+  })
+}
+
 // Ansible任务管理API
 export function GetAnsibleTaskList(params) {
   return request({
@@ -249,6 +308,17 @@ export function CreateAnsibleTask(data) {
   })
 }
 
+export function UpdateAnsibleTask(data) {
+  return request({
+    url: `task/ansible/${data.id}`,
+    method: 'put',
+    data,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+}
+
 export function GetAnsibleTaskById(id) {
   return request({
     url: `task/ansible/${id}`,
@@ -263,6 +333,12 @@ export function StartAnsibleTask(id) {
   })
 }
 
+/**
+ * 建立Ansible任务实时日志的SSE连接
+ * @param {string|number} id - 任务ID
+ * @param {string|number} workId - 执行ID
+ * @returns {EventSource} 返回EventSource实例，调用者需自行添加 onmessage 监听和 close 处理
+ */
 export function GetAnsibleTaskLog(id, workId, retryCount = 0) {
   const maxRetries = 1 // 减少重试次数，避免过长等待
   // 根据后端处理时间调整：首次30秒，重试3分钟
@@ -297,10 +373,7 @@ export function GetAnsibleTaskLog(id, workId, retryCount = 0) {
     console.error('❌ 获取历史日志失败:', error)
 
     // 如果是超时错误且未达到最大重试次数，进行重试
-    if (error.code === 'ECONNABORTED' && retryCount < maxRetries) {
-      console.log(`🔄 超时重试 (${retryCount + 1}/${maxRetries})，使用更长超时时间 (${timeout/1000}秒 -> ${180}秒)`)
-      return GetAnsibleTaskLog(id, workId, retryCount + 1)
-    }
+
 
     // 抛出带有更多上下文信息的错误
     const timeoutInfo = retryCount === 0 ? '30秒' : '3分钟'
@@ -309,6 +382,43 @@ export function GetAnsibleTaskLog(id, workId, retryCount = 0) {
       contextMessage: `后端处理超过${timeoutInfo}，可能正在执行长时间操作`
     }
     throw enhancedError
+  })
+}
+
+// 获取Ansible任务日志历史记录列表
+export function GetAnsibleTaskHistory(params) {
+  return request({
+    url: `/api/v1/task/ansible/${params.id}/history`,
+    method: 'get',
+    params: {
+      page: params.page,
+      limit: params.pageSize,
+    }
+  })
+}
+
+// 根据任务ID、WORKID和HistoryID获取历史任务日志
+export function GetAnsibleTaskLogByHistory(params) {
+  return request({
+    url: `/api/v1/task/ansible/history/detail/task/${params.id}/work/${params.workId}/history/${params.historyId}/log`,
+    method: 'get',
+    params: {
+      t: Date.now(),
+      // 获取历史日志时不需要实时参数
+      realtime: false,
+      includeBuffer: false
+    }
+  })
+}
+
+// 获取任务的历史执行详情，包含每个主机的执行日志
+export function GetAnsibleHistoryDetail(params) {
+  return request({
+    url: `/api/v1/task/ansible/${params.id}/history/${params.historyId}`,
+    method: 'get',
+    headers: {
+      'Accept': 'application/json'
+    }
   })
 }
 
@@ -339,7 +449,7 @@ function getValidToken() {
   // 尝试多种存储位置获取token
   const storageKeys = ['token', 'access_token', 'jwt_token', 'authToken']
   let token = null
-  
+
   // 优先从localStorage获取
   for (const key of storageKeys) {
     token = localStorage.getItem(key)
@@ -347,7 +457,7 @@ function getValidToken() {
       break
     }
   }
-  
+
   // 如果localStorage没有，尝试sessionStorage
   if (!token || token === 'null' || token === 'undefined') {
     for (const key of storageKeys) {
@@ -357,7 +467,7 @@ function getValidToken() {
       }
     }
   }
-  
+
   // 如果token是JSON对象，尝试解析
   if (token && typeof token === 'string' && token.startsWith('{')) {
     try {
@@ -367,18 +477,18 @@ function getValidToken() {
       console.warn('无法解析token JSON:', e)
     }
   }
-  
+
   // 确保token不是字符串'null'
   if (token === 'null' || token === 'undefined' || !token) {
     token = null
   }
-  
+
   console.log('Token获取结果:', {
     hasToken: !!token,
     tokenPreview: token ? `${token.substring(0, 10)}...` : 'null',
     tokenLength: token ? token.length : 0
   })
-  
+
   return token
 }
 
@@ -390,11 +500,11 @@ export function GetAnsibleTaskLogStream(id, workId) {
   const host = window.location.host
   const baseURL = `${protocol}//${host}`
   const url = `${baseURL}/api/v1/task/ansible/${id}/log/${workId}`
-  
+
   if (!token) {
     console.error('警告: 未找到有效的认证token')
   }
-  
+
   console.log('构造SSE URL:', {
     hasValidToken: !!token,
     tokenPreview: token ? `${token.substring(0, 10)}...` : 'null',
@@ -403,7 +513,7 @@ export function GetAnsibleTaskLogStream(id, workId) {
     workId,
     finalUrl: `${url}?token=${encodeURIComponent(token || '')}`
   })
-  
+
   return {
     url: `${url}?token=${encodeURIComponent(token || '')}`
   }
