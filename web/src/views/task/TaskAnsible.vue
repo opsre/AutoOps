@@ -77,7 +77,7 @@
               alt="ansible"
               style="width: 20px; height: 20px; object-fit: contain; flex-shrink: 0;"
             />
-            <span>{{ row.name }}</span>
+            <span class="task-name-link" @click="goToHistory(row)">{{ row.name }}</span>
           </div>
         </template>
       </el-table-column>
@@ -143,6 +143,25 @@
       </el-table-column>
       <el-table-column prop="createdAt" label="创建时间"  />
       <el-table-column prop="updatedAt" label="更新时间"  />
+      <el-table-column prop="cron_expr" label="Cron表达式" width="150">
+        <template #default="{ row }">
+           <el-tag v-if="row.cron_expr" size="small" type="info">{{ row.cron_expr }}</el-tag>
+           <span v-else style="color: #909399;">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="is_recurring" label="定时开关" width="100" align="center">
+        <template #default="{ row }">
+          <el-switch
+            v-model="row.is_recurring"
+            :active-value="1"
+            :inactive-value="0"
+            inline-prompt
+            active-text="开"
+            inactive-text="关"
+            @change="handleRecurringChange(row)"
+          />
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="120" fixed="right">
         <template #default="{row}">
           <div class="operation-buttons">
@@ -154,6 +173,15 @@
                 v-authority="['task:ansible:start']"
                 circle
                 @click="() => showStartTaskDialog(row)"
+              />
+            </el-tooltip>
+            <el-tooltip content="编辑" placement="top">
+              <el-button
+                type="primary"
+                icon="Edit"
+                size="small"
+                circle
+                @click="handleEdit(row)"
               />
             </el-tooltip>
             <el-tooltip content="删除" placement="top">
@@ -188,7 +216,7 @@
 
     <!-- Ansible任务表单对话框 -->
     <el-dialog
-      title="新增Ansible任务"
+      :title="isEdit ? '编辑Ansible任务' : '新增Ansible任务'"
       v-model="formVisible"
       v-authority="['task:ansible:create']"
       width="50%"
@@ -225,9 +253,37 @@
           </el-radio-group>
         </el-form-item>
 
+        <el-form-item label="使用配置中心">
+           <el-switch v-model="currentTask.use_config" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" />
+        </el-form-item>
+
+        <!-- 使用配置中心时的选项 -->
+        <template v-if="currentTask.use_config === 1">
+           <el-form-item label="Inventory配置" >
+             <el-select v-model="currentTask.inventory_config_id" placeholder="请选择Inventory配置" clearable filterable style="width: 100%">
+                <el-option v-for="item in configOptions.inventory" :key="item.ID" :label="item.Name" :value="item.ID" />
+             </el-select>
+           </el-form-item>
+           <el-form-item label="全局变量配置">
+             <el-select v-model="currentTask.global_vars_config_id" placeholder="请选择全局变量配置" clearable filterable style="width: 100%">
+                <el-option v-for="item in configOptions.globalVars" :key="item.ID" :label="item.Name" :value="item.ID" />
+             </el-select>
+           </el-form-item>
+           <el-form-item label="额外变量配置">
+             <el-select v-model="currentTask.extra_vars_config_id" placeholder="请选择额外变量配置" clearable filterable style="width: 100%">
+                <el-option v-for="item in configOptions.extraVars" :key="item.ID" :label="item.Name" :value="item.ID" />
+             </el-select>
+           </el-form-item>
+           <el-form-item label="命令行参数配置">
+             <el-select v-model="currentTask.cli_args_config_id" placeholder="请选择命令行参数配置" clearable filterable style="width: 100%">
+                <el-option v-for="item in configOptions.cliArgs" :key="item.ID" :label="item.Name" :value="item.ID" />
+             </el-select>
+           </el-form-item>
+        </template>
+
         <!-- 手动任务配置 -->
         <template v-if="currentTask.type === 1">
-          <el-form-item label="主机分组" prop="hostGroups">
+          <el-form-item label="主机分组" prop="hostGroups" v-if="currentTask.use_config === 0">
             <div style="margin-bottom: 10px">
               <el-button
                 type="primary"
@@ -257,14 +313,30 @@
             </div>
           </el-form-item>
 
-          <el-form-item label="全局变量">
-            <el-input
-              v-model="currentTask.variables"
-              type="textarea"
-              :rows="3"
-              placeholder='请输入JSON格式的全局变量，如: {"name":"mysql-test","version":"5.7"}'
-            />
-          </el-form-item>
+          <template v-if="currentTask.use_config === 0">
+            <el-form-item label="全局变量">
+              <el-input
+                v-model="currentTask.variables"
+                type="textarea"
+                :rows="3"
+                placeholder='请输入JSON格式的全局变量，如: {"name":"mysql-test","version":"5.7"}'
+              />
+            </el-form-item>
+            <el-form-item label="额外变量">
+              <el-input
+                v-model="currentTask.extra_vars"
+                type="textarea"
+                :rows="3"
+                placeholder='请输入JSON或YAML格式的额外变量'
+              />
+            </el-form-item>
+            <el-form-item label="命令行参数">
+              <el-input
+                v-model="currentTask.cli_args"
+                placeholder='请输入命令行参数'
+              />
+            </el-form-item>
+          </template>
 
           <el-form-item label="Playbook文件" prop="playbooks">
             <el-upload
@@ -301,7 +373,7 @@
 
         <!-- 自动任务配置 -->
         <template v-if="currentTask.type === 2">
-          <el-form-item label="主机分组" prop="hostGroups">
+          <el-form-item label="主机分组" prop="hostGroups" v-if="currentTask.use_config === 0">
             <div style="margin-bottom: 10px">
               <el-button
                 type="primary"
@@ -337,7 +409,55 @@
               <span>示例: git@gitee.com:zhang_fan1024/ansible-playbook.git</span>
             </div>
           </el-form-item>
+
+          <el-form-item label="Playbook路径">
+             <el-select
+                v-model="currentTask.playbook_paths"
+                multiple
+                filterable
+                allow-create
+                default-first-option
+                placeholder="请输入Playbook文件路径并回车"
+                style="width: 100%"
+              >
+             </el-select>
+             <div style="font-size: 12px; color: #999; margin-top: 4px">输入如: site.yml, roles/db.yml</div>
+          </el-form-item>
+
+          <template v-if="currentTask.use_config === 0">
+            <el-form-item label="全局变量">
+                <el-input
+                v-model="currentTask.variables"
+                type="textarea"
+                :rows="3"
+                placeholder='请输入JSON格式的全局变量，如: {"name":"mysql-test","version":"5.7"}'
+                />
+            </el-form-item>
+            <el-form-item label="额外变量">
+                <el-input
+                v-model="currentTask.extra_vars"
+                type="textarea"
+                :rows="3"
+                placeholder='请输入JSON或YAML格式的额外变量'
+                />
+            </el-form-item>
+            <el-form-item label="命令行参数">
+                <el-input
+                v-model="currentTask.cli_args"
+                placeholder='请输入命令行参数'
+                />
+            </el-form-item>
+          </template>
+
         </template>
+        
+        <!-- 周期任务配置 -->
+        <el-form-item label="周期性任务">
+           <el-switch v-model="currentTask.is_recurring" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" />
+        </el-form-item>
+        <el-form-item label="Cron表达式" v-if="currentTask.is_recurring === 1" required>
+           <el-input v-model="currentTask.cron_expr" placeholder="例如: 0 0 * * * (每天零点执行)" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>
@@ -445,11 +565,14 @@
 
 <script setup>
 import { ref, reactive, onMounted, shallowRef, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Connection, VideoPlay, Delete } from '@element-plus/icons-vue'
+import { Connection, VideoPlay, Delete, Edit } from '@element-plus/icons-vue'
 import {
   GetAnsibleTaskList,
+  GetAnsibleConfigList,
   CreateAnsibleTask,
+  UpdateAnsibleTask,
   GetAnsibleTaskById,
   StartAnsibleTask,
   DeleteAnsibleTask,
@@ -461,6 +584,7 @@ import cmdbAPI from '@/api/cmdb'
 import AnsibleJobFlow from './Job/AnsibleJobFlow.vue'
 import CreateTaskHost from './Job/CreateTaskHost.vue'
 
+const router = useRouter()
 const tasks = ref([])
 const loading = ref(false)
 const formVisible = ref(false)
@@ -472,6 +596,8 @@ const submitting = ref(false)
 const hostGroupDialogVisible = ref(false)
 const showHostDialog = ref(false)
 const newGroupName = ref('')
+const isEdit = ref(false)
+const editId = ref(null)
 
 // 启动任务相关
 const selectedTask = ref(null)
@@ -492,18 +618,71 @@ const currentTask = ref({
   type: 1,
   hostGroups: {},
   variables: '',
+  extra_vars: '',
+  cli_args: '',
   gitRepo: '',
   playbookFile: null,
-  rolesFile: null
+  rolesFile: null,
+  use_config: 0,
+  inventory_config_id: null,
+  global_vars_config_id: null,
+  extra_vars_config_id: null,
+  cli_args_config_id: null,
+  is_recurring: 0,
+  cron_expr: '',
+  playbook_paths: [],
+  view_id: null
 })
+
+// 配置选项
+const configOptions = reactive({
+  inventory: [],
+  globalVars: [],
+  extraVars: [],
+  cliArgs: []
+})
+
+// 获取配置列表
+const fetchConfigs = async () => {
+  try {
+    const types = [
+      { type: 1, key: 'inventory' },
+      { type: 2, key: 'globalVars' },
+      { type: 3, key: 'extraVars' },
+      { type: 4, key: 'cliArgs' }
+    ]
+    
+    for (const item of types) {
+      const res = await GetAnsibleConfigList({
+        page: 1,
+        size: 100,
+        type: item.type
+      })
+      if (res.data && res.data.code === 200) {
+        // 根据后端返回的具体结构调整，这里假设 data.data 是列表
+        const list = res.data.data.list || []
+        // 映射到 configOptions
+        switch(item.key) {
+           case 'inventory': configOptions.inventory = list; break;
+           case 'globalVars': configOptions.globalVars = list; break;
+           case 'extraVars': configOptions.extraVars = list; break;
+           case 'cliArgs': configOptions.cliArgs = list; break;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取配置列表失败:', error)
+  }
+}
 
 const taskRules = reactive({
   name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
   type: [{ required: true, message: '请选择任务类型', trigger: 'change' }],
   hostGroups: [{
-    required: true,
+    required: false,
     validator: (rule, value, callback) => {
-      if (Object.keys(currentTask.value.hostGroups).length === 0) {
+      // 只有在不使用配置中心时，才校验手动的主机分组
+      if (currentTask.value.use_config === 0 && Object.keys(currentTask.value.hostGroups).length === 0) {
         callback(new Error('请至少配置一个主机分组'))
       } else {
         callback()
@@ -514,11 +693,15 @@ const taskRules = reactive({
   playbooks: [{
     required: false,
     validator: (rule, value, callback) => {
-      if (currentTask.value.type === 1 && !currentTask.value.playbookFile) {
-        callback(new Error('请选择Playbook文件'))
-      } else {
-        callback()
+      // 如果是手动任务
+      if (currentTask.value.type === 1) {
+        // 如果是编辑模式且已有Playbook，则不强制上传
+        if (isEdit.value && currentTask.value.existingPlaybook) {
+          callback()
+          return
+        }
       }
+      callback()
     },
     trigger: 'change'
   }],
@@ -634,6 +817,8 @@ const fetchTasks = async () => {
           errorMsg: item.ErrorMsg,
           taskCount: item.TaskCount,
           totalDuration: item.TotalDuration,
+          is_recurring: item.IsRecurring,
+          cron_expr: item.CronExpr,
           createdAt: formatTime(item.CreatedAt),
           updatedAt: formatTime(item.UpdatedAt),
           works: item.Works
@@ -667,18 +852,71 @@ const fetchTasks = async () => {
 }
 
 const handleCreate = () => {
+  isEdit.value = false
+  editId.value = null
   currentTask.value = {
     name: '',
     description: '',
     type: 1,
     hostGroups: {},
     variables: '',
+    extra_vars: '',
+    cli_args: '',
     gitRepo: '',
     playbookFile: null,
-    rolesFile: null
+    rolesFile: null,
+    use_config: 0,
+    inventory_config_id: null,
+    global_vars_config_id: null,
+    extra_vars_config_id: null,
+    cli_args_config_id: null,
+    is_recurring: 0,
+    cron_expr: '',
+    playbook_paths: [],
+    view_id: null
   }
   expandedGroups.value = []
   formVisible.value = true
+}
+
+const handleEdit = async (row) => {
+  isEdit.value = true
+  editId.value = row.id // row.id mapped in table
+  
+  try {
+     const res = await GetAnsibleTaskById(row.id)
+
+     if (res && res.data && res.data.code === 200) {
+        const data = res.data.data.task_info
+        console.log('获取的任务详情:', data)
+        currentTask.value = {
+            name: data.Name,
+            description: data.Description,
+            type: data.Type,
+            hostGroups: typeof data.HostGroups === 'string' ? parseHostGroups(data.HostGroups) : (data.HostGroups || {}),
+            variables: data.GlobalVars || '',
+            extra_vars: data.ExtraVars || '',
+            cli_args: data.CliArgs || '',
+            gitRepo: data.GitRepo || '',
+            playbookFile: null,
+            rolesFile: null,
+            use_config: data.UseConfig || 0,
+            inventory_config_id: data.InventoryConfigID || null,
+            global_vars_config_id: data.GlobalVarsConfigID || null,
+            extra_vars_config_id: data.ExtraVarsConfigID || null,
+            cli_args_config_id: data.CliArgsConfigID || null,
+            is_recurring: data.IsRecurring || 0,
+            cron_expr: data.CronExpr || '',
+            // Handle playbook_paths parsing if it's a string
+            playbook_paths: data.PlaybookPaths ? (typeof data.PlaybookPaths === 'string' ? JSON.parse(data.PlaybookPaths) : data.PlaybookPaths) : [],
+            view_id: data.ViewId || null
+        }
+        formVisible.value = true
+     }
+  } catch (e) {
+      console.error(e)
+      ElMessage.error('获取任务详情失败')
+  }
 }
 
 const handleSubmit = async () => {
@@ -687,18 +925,42 @@ const handleSubmit = async () => {
     submitting.value = true
 
     const formData = new FormData()
+    // Update ID if editing
+    if (isEdit.value && editId.value) {
+        formData.append('id', editId.value)
+    }
+
     formData.append('name', currentTask.value.name)
     if (currentTask.value.description) {
       formData.append('description', currentTask.value.description)
     }
     formData.append('type', currentTask.value.type.toString())
-    formData.append('hostGroups', JSON.stringify(currentTask.value.hostGroups))
+    
+    // Config Switch
+    formData.append('use_config', currentTask.value.use_config ? '1' : '0')
+    
+    if (currentTask.value.use_config === 1) {
+        // 使用配置中心
+        if (currentTask.value.inventory_config_id) formData.append('inventory_config_id', currentTask.value.inventory_config_id)
+        if (currentTask.value.global_vars_config_id) formData.append('global_vars_config_id', currentTask.value.global_vars_config_id)
+        if (currentTask.value.extra_vars_config_id) formData.append('extra_vars_config_id', currentTask.value.extra_vars_config_id)
+        if (currentTask.value.cli_args_config_id) formData.append('cli_args_config_id', currentTask.value.cli_args_config_id)
+    } else {
+        // 不使用配置中心，使用手动输入
+        formData.append('hostGroups', JSON.stringify(currentTask.value.hostGroups))
+        if (currentTask.value.variables) formData.append('variables', currentTask.value.variables)
+        if (currentTask.value.extra_vars) formData.append('extra_vars', currentTask.value.extra_vars)
+        if (currentTask.value.cli_args) formData.append('cli_args', currentTask.value.cli_args)
+    }
+
+    // Cron / Recurring
+    formData.append('is_recurring', currentTask.value.is_recurring ? '1' : '0')
+    if (currentTask.value.is_recurring && currentTask.value.cron_expr) {
+        formData.append('cron_expr', currentTask.value.cron_expr)
+    }
 
     if (currentTask.value.type === 1) {
       // 手动任务
-      if (currentTask.value.variables) {
-        formData.append('variables', currentTask.value.variables)
-      }
       if (currentTask.value.playbookFile) {
         formData.append('playbooks', currentTask.value.playbookFile)
       }
@@ -708,16 +970,95 @@ const handleSubmit = async () => {
     } else {
       // 自动任务
       formData.append('gitRepo', currentTask.value.gitRepo)
+      if (currentTask.value.playbook_paths && currentTask.value.playbook_paths.length > 0) {
+          formData.append('playbook_paths', JSON.stringify(currentTask.value.playbook_paths))
+      }
+    }
+    
+    if (currentTask.value.view_id) {
+        formData.append('view_id', currentTask.value.view_id)
     }
 
-    const response = await CreateAnsibleTask(formData)
+    let response
+    if (isEdit.value) {
+      if (!editId.value) {
+        ElMessage.warning('编辑模式下缺少任务ID')
+        return
+      }
+
+      // Variables processing
+      let variablesData = {}
+      if (typeof currentTask.value.variables === 'string' && currentTask.value.variables.trim()) {
+        try {
+           variablesData = JSON.parse(currentTask.value.variables)
+        } catch (e) {
+           ElMessage.error('全局变量格式错误，请输入有效的JSON字符串')
+           submitting.value = false
+           return
+        }
+      } else {
+         variablesData = currentTask.value.variables || {}
+      }
+
+      // HostGroups processing
+      let hostGroupsData = {}
+      try {
+         if (typeof currentTask.value.hostGroups === 'string') {
+            hostGroupsData = currentTask.value.hostGroups ? JSON.parse(currentTask.value.hostGroups) : {}
+         } else {
+            hostGroupsData = currentTask.value.hostGroups || {}
+         }
+      } catch (e) {
+         hostGroupsData = {}
+      }
+
+      // PlaybookPaths processing
+      let playbookPathsData = []
+      try {
+         if (typeof currentTask.value.playbook_paths === 'string') {
+            playbookPathsData = currentTask.value.playbook_paths ? JSON.parse(currentTask.value.playbook_paths) : []
+         } else if (Array.isArray(currentTask.value.playbook_paths)) {
+            playbookPathsData = currentTask.value.playbook_paths
+         }
+      } catch (e) {
+         playbookPathsData = []
+      }
+
+      const updateData = {
+        id: editId.value,
+        name: currentTask.value.name,
+        description: currentTask.value.description || '',
+        type: currentTask.value.type,
+        useConfig: currentTask.value.use_config,
+        isRecurring: currentTask.value.is_recurring,
+        cronExpr: currentTask.value.cron_expr || '',
+        viewId: currentTask.value.view_id || 0,
+        // Config Center fields
+        inventoryConfigId: currentTask.value.inventory_config_id || 0,
+        globalVarsConfigId: currentTask.value.global_vars_config_id || 0,
+        extraVarsConfigId: currentTask.value.extra_vars_config_id || 0,
+        cliArgsConfigId: currentTask.value.cli_args_config_id || 0,
+        // Manual fields
+        variables: variablesData,
+        extraVars: currentTask.value.extra_vars || '',
+        cliArgs: currentTask.value.cli_args || '',
+        hostGroups: hostGroupsData,
+        // Git/Auto fields (PlaybookPaths is array)
+        gitRepo: currentTask.value.gitRepo || '',
+        playbookPaths: playbookPathsData
+      }
+
+      response = await UpdateAnsibleTask(updateData)
+    } else {
+        response = await CreateAnsibleTask(formData)
+    }
     
     if (response?.data?.code === 200) {
-      ElMessage.success('Ansible任务创建成功')
+      ElMessage.success(isEdit.value ? 'Ansible任务更新成功' : 'Ansible任务创建成功')
       formVisible.value = false
       fetchTasks()
     } else {
-      throw new Error(response?.data?.message || '创建任务失败')
+      throw new Error(response?.data?.message || (isEdit.value ? '更新任务失败' : '创建任务失败'))
     }
   } catch (error) {
     console.error('创建 Ansible 任务失败:', error)
@@ -816,6 +1157,24 @@ const removeHostGroup = (groupName) => {
   const index = expandedGroups.value.indexOf(groupName)
   if (index > -1) {
     expandedGroups.value.splice(index, 1)
+  }
+}
+
+// 处理定时任务开关变更
+const handleRecurringChange = async (row) => {
+  try {
+    const statusText = row.is_recurring === 1 ? '开启' : '关闭'
+    console.log(`正在${statusText}任务 [${row.name}] 的定时功能`)
+    
+    // 这里放置更新API调用
+    await UpdateAnsibleTask({id: row.id, isRecurring: row.is_recurring})
+    
+    ElMessage.success(`已${statusText}任务 "${row.name}" 的定时调度`)
+  } catch (error) {
+    // 失败时回滚状态
+    row.is_recurring = row.is_recurring === 1 ? 0 : 1
+    console.error('更新定时状态失败:', error)
+    ElMessage.error('更新状态失败')
   }
 }
 
@@ -976,9 +1335,20 @@ const showStartTaskDialog = async (task) => {
   }
 }
 
+const goToHistory = (row) => {
+  router.push({
+    name: 'AnsibleTaskHistory',
+    query: {
+      id: row.id,
+      name: row.name
+    }
+  })
+}
+
 
 onMounted(() => {
   fetchTasks()
+  fetchConfigs()
 })
 </script>
 
@@ -1260,5 +1630,17 @@ onMounted(() => {
 .status-error {
   color: #F56C6C;
   font-weight: 500;
+}
+
+.task-name-link {
+  color: #667eea;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.task-name-link:hover {
+  color: #764ba2;
+  text-decoration: underline;
 }
 </style>

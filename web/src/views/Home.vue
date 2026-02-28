@@ -105,6 +105,20 @@ export default {
         // 确保数据是数组格式
         if (Array.isArray(menuData)) {
           this.leftMenuList = menuData;
+          
+          // 手动添加配置管理菜单到任务中心
+          const taskMenu = this.leftMenuList.find(item => item.menuName === '任务中心')
+          if (taskMenu && taskMenu.menuSvoList) {
+            const configExists = taskMenu.menuSvoList.some(sub => sub.url === 'task/config')
+            if (!configExists) {
+              taskMenu.menuSvoList.push({
+                id: 99999,
+                menuName: '配置管理',
+                url: 'task/config',
+                icon: 'Setting'
+              })
+            }
+          }
         } else if (menuData) {
           // 如果数据存在但不是数组，尝试解析
           console.warn('菜单数据格式异常，尝试修复:', menuData);

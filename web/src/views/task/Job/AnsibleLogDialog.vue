@@ -90,13 +90,21 @@
 import { ref, reactive, computed, watch, nextTick, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Loading, WarningFilled, Document } from '@element-plus/icons-vue'
-import { GetAnsibleTaskLog } from '@/api/task'
+import { GetAnsibleTaskLog, GetAnsibleTaskLogByHistory } from '@/api/task'
 
 // Props
 const props = defineProps({
   visible: {
     type: Boolean,
     default: false
+  },
+  historyMode: {
+    type: Boolean,
+    default: false
+  },
+  historyId: {
+    type: [String, Number],
+    default: null
   }
 })
 
@@ -162,11 +170,14 @@ const show = (info) => {
 
   dialogVisible.value = true
 
-  // 首先尝试获取历史日志
-  refreshLog()
-
-  // 然后连接WebSocket获取实时日志
-  connectWebSocket()
+  // 根据模式选择获取方式
+  if (props.historyMode && props.historyId) {
+    refreshLog()
+  } else {
+    // 默认模式：先尝试获取历史日志，然后连接WebSocket
+    refreshLog()
+    connectWebSocket()
+  }
 }
 
 // WebSocket连接
@@ -362,7 +373,53 @@ const refreshLog = async () => {
       ElMessage.info('正在获取历史日志，后端可能需要处理时间...')
     }
 
-    const response = await GetAnsibleTaskLog(logInfo.value.taskId, logInfo.value.workId)
+    let response
+    
+    if (props.historyMode && props.historyId) {
+      console.log('📚 获取归档历史日志:', {
+        taskId: logInfo.value.taskId,
+        workId: logInfo.value.workId,
+        historyId: props.historyId
+      })
+      
+      response = await GetAnsibleTaskLogByHistory({
+        id: logInfo.value.taskId,
+        workId: logInfo.value.workId,
+        historyId: props.historyId
+      })
+      
+      // 历史日志API可能返回 {data: {content: "..."}} 或 {data: "..."}
+      // 需要做兼容处理
+      let responseData = response.data || response
+      
+      if (responseData) {
+        let content = ''
+        
+        content = responseData.data
+
+        const parsedHistoryLogs = parseHistoryLogs(content)
+        historyLogs.value = parsedHistoryLogs
+        
+        // 历史模式下不需要合并实时日志，直接使用
+        logs.value = parsedHistoryLogs
+        
+        console.log(`✅ 获取到 ${parsedHistoryLogs.length} 行归档日志`)
+        isError.value = false
+        errorMessage.value = ''
+        isCompleted.value = true // 历史日志视为已完成
+        
+        if (parsedHistoryLogs.length > 0) {
+          ElMessage.success(`成功获取 ${parsedHistoryLogs.length} 行归档日志`)
+        } else {
+             ElMessage.info('该任务没有产生日志或日志为空')
+        }
+        
+        // 提前返回，不再执行后续逻辑
+        return
+      }
+    } else {
+      response = await GetAnsibleTaskLog(logInfo.value.taskId, logInfo.value.workId)
+    }
 
     if (response && response.data) {
       // 解析历史日志
