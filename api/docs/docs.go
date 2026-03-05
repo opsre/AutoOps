@@ -7698,7 +7698,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "file",
-                        "description": "playbook文件(type=1时上传)",
+                        "description": "playbook文件(type=1时上传，支持多文件)",
                         "name": "playbooks",
                         "in": "formData"
                     },
@@ -7706,6 +7706,72 @@ const docTemplate = `{
                         "type": "file",
                         "description": "roles目录(type=1时上传)",
                         "name": "roles",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "额外变量(JSON/YAML字符串)",
+                        "name": "extra_vars",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "命令行参数",
+                        "name": "cli_args",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "是否使用配置中心(0=否，1=是)",
+                        "name": "use_config",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Inventory配置ID",
+                        "name": "inventory_config_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "全局变量配置ID",
+                        "name": "global_vars_config_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "额外变量配置ID",
+                        "name": "extra_vars_config_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "命令行参数配置ID",
+                        "name": "cli_args_config_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cron表达式(周期任务必填)",
+                        "name": "cron_expr",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "是否为周期任务(0=否, 1=是)",
+                        "name": "is_recurring",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Playbook文件路径列表(JSON数组字符串, type=2时可选)",
+                        "name": "playbook_paths",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "视图ID",
+                        "name": "view_id",
                         "in": "formData"
                     }
                 ],
@@ -7835,6 +7901,86 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/task/ansible/query": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "多条件查询Ansible任务",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "多条件查询Ansible任务",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务名称（支持模糊查询）",
+                        "name": "name",
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "type": "integer",
+                        "description": "任务类型（1=手动，2=Git导入，3=K8s部署）",
+                        "name": "type",
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "type": "string",
+                        "description": "视图名称",
+                        "name": "viewName",
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "每页数量",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.TaskAnsible"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/task/ansible/{id}": {
             "get": {
                 "security": [
@@ -7860,6 +8006,62 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.TaskAnsible"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "修改Ansible任务基本信息和配置（运行中任务不可修改）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "修改Ansible任务",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "修改任务请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateTaskRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -8047,6 +8249,328 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/controller.ListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/task/ansible/{id}/history": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取任务的历史执行记录列表，支持分页",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "获取任务历史记录列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/task/ansible/history/{history_id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取任务的历史执行详情，包含每个主机的执行日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "获取任务历史记录详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "历史记录ID",
+                        "name": "history_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.TaskAnsibleHistory"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/task/ansible/{id}/history/{history_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "删除指定的任务历史记录及关联的日志文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "删除任务历史记录",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "历史记录ID",
+                        "name": "history_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/result.Result"
+                        }
+                    }
+                }
+            },
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取任务的历史执行详情，包含每个主机的执行日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "获取任务历史记录详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "历史记录ID",
+                        "name": "history_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.TaskAnsibleHistory"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/task/ansible/history/detail/task/{task_id}/work/{work_id}/history/{history_id}/log": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "根据任务ID、WORKID和HistoryID获取历史任务日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "获取历史记录日志内容(通过详细信息)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "任务ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "子任务ID",
+                        "name": "work_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "历史记录ID",
+                        "name": "history_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/task/ansible/history/work/{work_history_id}/log": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取指定子任务历史记录的日志内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "获取历史记录日志内容",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "子任务历史记录ID",
+                        "name": "work_history_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
                                         }
                                     }
                                 }
@@ -9105,6 +9629,300 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/ws/task/ansible/{id}/log/{work_id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "建立WebSocket连接实时推送任务执行日志",
+                "tags": [
+                    "任务作业"
+                ],
+                "summary": "通过WebSocket实时获取Ansible任务日志",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "子任务ID",
+                        "name": "work_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "认证token",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/v1/config/ansible": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "分页获取配置列表，支持按名称和类型过滤",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config配置中心"
+                ],
+                "summary": "获取Ansible配置列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "每页数量",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "配置名称（模糊查询）",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "配置类型(1-inventory 2-global_vars 3-extra_vars 4-cli_args)",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dao.ListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "创建Inventory/Vars/Args等配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config配置中心"
+                ],
+                "summary": "创建Ansible配置",
+                "parameters": [
+                    {
+                        "description": "创建配置请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ConfigAnsible"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/config/ansible/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "根据ID获取配置详情",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config配置中心"
+                ],
+                "summary": "获取Ansible配置详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "配置ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ConfigAnsible"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "更新配置内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config配置中心"
+                ],
+                "summary": "更新Ansible配置",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "配置ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新配置请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ConfigAnsible"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "删除指定的配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config配置中心"
+                ],
+                "summary": "删除Ansible配置",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "配置ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/result.Result"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/tool": {
             "put": {
                 "security": [
@@ -9575,43 +10393,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/api/v1/ws/task/ansible/{id}/log/{work_id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "建立WebSocket连接实时推送任务执行日志",
-                "tags": [
-                    "任务作业"
-                ],
-                "summary": "通过WebSocket实时获取Ansible任务日志",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "任务ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "子任务ID",
-                        "name": "work_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "认证token",
-                        "name": "token",
-                        "in": "query"
-                    }
-                ],
-                "responses": {}
             }
         },
         "/apps": {
@@ -27247,6 +28028,88 @@ const docTemplate = `{
                 }
             }
         },
+        "model.TaskAnsibleHistory": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "errorMsg": {
+                    "type": "string"
+                },
+                "finishedAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "operatorID": {
+                    "type": "integer"
+                },
+                "operatorName": {
+                    "type": "string"
+                },
+                "startedAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "taskAnsible": {
+                    "$ref": "#/definitions/model.TaskAnsible"
+                },
+                "taskID": {
+                    "type": "integer"
+                },
+                "totalDuration": {
+                    "type": "integer"
+                },
+                "trigger": {
+                    "type": "integer"
+                },
+                "uniqId": {
+                    "type": "string"
+                },
+                "workHistories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.TaskAnsibleworkHistory"
+                    }
+                }
+            }
+        },
+        "model.TaskAnsibleworkHistory": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "historyID": {
+                    "type": "integer"
+                },
+                "hostName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "logPath": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "taskID": {
+                    "type": "integer"
+                },
+                "workID": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.TaskIDRequest": {
             "type": "object",
             "required": [
@@ -27374,6 +28237,164 @@ const docTemplate = `{
                     "description": "更新人",
                     "type": "string"
                 }
+            }
+        },
+        "model.ConfigAnsible": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "description": "内容：inventory为文本，vars/args为JSON",
+                    "type": "string"
+                },
+                "createdAt": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "createdBy": {
+                    "description": "创建人",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "配置名称",
+                    "type": "string"
+                },
+                "remark": {
+                    "description": "备注",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "1-inventory 2-global_vars 3-extra_vars 4-cli_args",
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "description": "更新时间",
+                    "type": "string"
+                },
+                "updatedBy": {
+                    "description": "更新人",
+                    "type": "string"
+                }
+            }
+        },
+		"service.CreateConfigRequest": {
+            "type": "object",
+            "required": [
+                "content",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "1-inventory 2-global_vars 3-extra_vars 4-cli_args",
+                    "type": "integer"
+                }
+            }
+        },
+        "service.UpdateConfigRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "integer"
+                }
+            }
+        },
+        "service.UpdateTaskRequest": {
+            "type": "object",
+            "properties": {
+                "cliArgs": {
+                    "type": "string",
+					"description": "命令行参数"
+                },
+                "cliArgsConfigId": {
+                    "type": "integer",
+					"description": "命令行参数配置ID"
+                },
+                "extraVars": {
+                    "type": "string",
+					"description": "额外变量"
+                },
+                "extraVarsConfigId": {
+                    "type": "integer",
+					"description": "额外变量配置ID"
+                },
+                "gitRepo": {
+                    "type": "string",
+					"description": "Git代码库地址"
+                },
+                "globalVarsConfigId": {
+                    "type": "integer",
+					"description": "全局变量配置ID"
+                },
+                "hostGroups": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+					"description": "主机组"
+                },
+                "inventoryConfigId": {
+                    "type": "integer",
+					"description": "Inventory配置ID"
+                },
+                "name": {
+                    "type": "string",
+					"description": "任务名称"
+                },
+                "playbookPaths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+					"description": "剧本路径列表"
+                },
+                "useConfig": {
+                    "type": "integer",
+					"description": "是否使用配置:0-否,1-是"
+                },
+                "variables": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+					"description": "任务全局变量"
+                },
+				"cronExpr": {
+					"type": "string",
+					"description": "定时表达式"
+				},
+				"isRecurring": {
+					"type": "integer",
+					"description": "是否周期性任务:0-否,1-是"
+				},
+				"viewId": {
+					"type": "integer",
+					"description": "视图ID"
+				}
             }
         },
         "model.TestJenkinsConnectionRequest": {
