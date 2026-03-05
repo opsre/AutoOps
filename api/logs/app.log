@@ -10169,3 +10169,290 @@ ORDER BY
 [36mINFO[0m[2026/02/19 - 20:04:12] 停止任务队列系统...                                  
 [36mINFO[0m[2026/02/19 - 20:04:12] 任务队列系统已停止                                    
 [36mINFO[0m[2026/02/19 - 20:04:12] Server exiting                               
+[37mDEBU[0m[2026/03/05 - 20:43:18] Logger initialized with TextFormatter.       
+[37mDEBU[0m[2026/03/05 - 20:48:31] Logger initialized with TextFormatter.       
+[37mDEBU[0m[2026/03/05 - 20:49:51] Logger initialized with TextFormatter.       
+[37mDEBU[0m[2026/03/05 - 20:51:24] Logger initialized with TextFormatter.       
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[15.731ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[3.404ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'cmdb_group' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[29.801ms] [34;1m[rows:0][0m CREATE TABLE `cmdb_group` (`id` bigint unsigned AUTO_INCREMENT NOT NULL COMMENT '''主键''',`parent_id` bigint unsigned NOT NULL DEFAULT 0 COMMENT '''父级分组ID''',`name` longtext NOT NULL COMMENT '''分组名称''',`create_time` datetime(3) NOT NULL COMMENT '''创建时间''',PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.505ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.793ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.949ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'config_ecsauth' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[28.628ms] [34;1m[rows:0][0m CREATE TABLE `config_ecsauth` (`id` bigint unsigned AUTO_INCREMENT NOT NULL COMMENT '''主键''',`name` longtext NOT NULL COMMENT '''凭证名称''',`type` bigint NOT NULL COMMENT '''认证类型:1->密码,2->私钥,3->公钥(免认证)''',`username` longtext COMMENT '''用户名''',`password` longtext COMMENT '''密码(type=1时使用)''',`public_key` text COMMENT '''私钥内容(type=2时使用，字段名历史原因)''',`port` bigint DEFAULT 22 COMMENT '''端口号''',`create_time` datetime(3) NOT NULL COMMENT '''创建时间''',`remark` longtext COMMENT '''备注''',PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.559ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.598ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.716ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'config_keymanage' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[19.791ms] [34;1m[rows:0][0m CREATE TABLE `config_keymanage` (`id` bigint unsigned AUTO_INCREMENT,`key_type` bigint NOT NULL,`key_id` text NOT NULL,`key_secret` text NOT NULL,`remark` text,`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.505ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.503ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.609ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'config_sync_schedule' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[17.182ms] [34;1m[rows:0][0m CREATE TABLE `config_sync_schedule` (`id` bigint unsigned AUTO_INCREMENT,`name` varchar(100) NOT NULL,`cron_expr` varchar(100) NOT NULL,`key_types` text NOT NULL,`status` bigint NOT NULL DEFAULT 1,`last_run_time` datetime(3) NULL,`next_run_time` datetime(3) NULL,`sync_log` text,`remark` text,`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[6.639ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.870ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.890ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'cmdb_host' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[27.732ms] [34;1m[rows:0][0m CREATE TABLE `cmdb_host` (`id` bigint unsigned AUTO_INCREMENT NOT NULL COMMENT '''主键''',`host_name` longtext NOT NULL COMMENT '''名称''',`group_id` bigint unsigned NOT NULL COMMENT '''分组ID''',`private_ip` longtext COMMENT '''私网IP''',`public_ip` longtext COMMENT '''公网IP''',`ssh_ip` longtext NOT NULL COMMENT '''SSH连接IP''',`ssh_name` longtext COMMENT '''SSH用户名''',`ssh_key_id` bigint unsigned COMMENT '''SSH凭据ID''',`ssh_port` bigint DEFAULT 22 COMMENT '''SSH端口''',`remark` longtext COMMENT '''备注''',`vendor` bigint COMMENT '''1->自建,2->阿里云,3->腾讯云''',`region` longtext COMMENT '''区域''',`instance_id` longtext COMMENT '''实例ID''',`name` longtext NOT NULL COMMENT '''ecs主机名称''',`os` longtext COMMENT '''操作系统''',`status` bigint COMMENT '''状态:1->认证成功,2->未认证,3->认证失败''',`cpu` longtext COMMENT '''CPU信息''',`memory` longtext COMMENT '''内存信息''',`disk` longtext COMMENT '''磁盘信息''',`billing_type` longtext COMMENT '''计费方式''',`create_time` datetime(3) NOT NULL COMMENT '''创建时间''',`expire_time` datetime(3) NULL COMMENT '''到期时间''',`update_time` datetime(3) NULL COMMENT '''更新时间''',PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.068ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.056ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'cmdb_sql_log' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[32.130ms] [34;1m[rows:0][0m CREATE TABLE `cmdb_sql_log` (`id` bigint unsigned AUTO_INCREMENT,`instance_id` varchar(64) NOT NULL,`database` varchar(128) NOT NULL,`operation_type` varchar(32) NOT NULL,`sql_content` text NOT NULL,`exec_user` varchar(64) NOT NULL,`ip` varchar(64) NOT NULL,`scanned_rows` bigint DEFAULT 0,`affected_rows` bigint DEFAULT 0,`execution_time` bigint DEFAULT 0,`returned_rows` bigint DEFAULT 0,`result` varchar(32) NOT NULL,`query_time` datetime(3) NOT NULL,PRIMARY KEY (`id`),INDEX `idx_cmdb_sql_log_query_time` (`query_time`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.504ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.354ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.837ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'cmdb_sql' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[25.585ms] [34;1m[rows:0][0m CREATE TABLE `cmdb_sql` (`id` bigint unsigned AUTO_INCREMENT,`name` varchar(100) NOT NULL,`type` integer NOT NULL,`account_id` bigint unsigned NOT NULL,`group_id` bigint unsigned NOT NULL,`tags` varchar(255),`description` varchar(500),`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.506ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.610ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.790ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'config_account' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[20.495ms] [34;1m[rows:0][0m CREATE TABLE `config_account` (`id` bigint unsigned AUTO_INCREMENT,`alias` varchar(128) NOT NULL,`host` varchar(128) NOT NULL,`port` bigint NOT NULL,`name` varchar(128) NOT NULL,`password` text NOT NULL,`type` bigint NOT NULL,`remark` text,`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.506ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.522ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.193ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'task_template' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[23.930ms] [34;1m[rows:0][0m CREATE TABLE `task_template` (`id` bigint unsigned AUTO_INCREMENT,`name` varchar(100) NOT NULL,`type` bigint NOT NULL,`content` text NOT NULL,`remark` varchar(500),`created_by` varchar(50),`updated_by` varchar(50),`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.673ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.801ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.748ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'task_job' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[23.967ms] [34;1m[rows:0][0m CREATE TABLE `task_job` (`id` bigint unsigned AUTO_INCREMENT,`name` varchar(255) COMMENT '任务标题',`type` bigint COMMENT '任务类型 1=普通任务,2=定时任务,3=ansible任务',`shell` text COMMENT '任务内容(任务模板ID,多个用逗号分隔)',`host_ids` text COMMENT '主机ID(多个用逗号分隔)',`cron_expr` varchar(255) COMMENT '定时表达式(* * * * *)',`tasklog` text COMMENT '任务执行日志',`status` bigint COMMENT '任务状态 1=等待中,2=运行中,3=成功,4=异常,5=已暂停',`duration` bigint COMMENT '执行耗时(秒)',`task_count` bigint COMMENT '任务数量',`execute_count` bigint DEFAULT 0 COMMENT '执行次数',`next_run_time` datetime(3) NULL COMMENT '下次执行时间',`remark` text COMMENT '任务备注',`start_time` datetime(3) NULL COMMENT '任务开始时间',`end_time` datetime(3) NULL COMMENT '任务结束时间',`created_at` datetime(3) NULL COMMENT '任务创建时间',PRIMARY KEY (`id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.505ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.715ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.798ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'task_work' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[32.895ms] [34;1m[rows:0][0m CREATE TABLE `task_work` (`id` bigint unsigned AUTO_INCREMENT,`task_id` bigint unsigned COMMENT '关联的任务ID',`template_id` bigint unsigned COMMENT '任务模板ID',`host_id` bigint unsigned COMMENT '执行主机ID',`type` bigint COMMENT '任务类型 1=普通任务,2=定时任务',`status` bigint COMMENT '任务状态 1=等待中,2=运行中,3=成功,4=异常',`log` text COMMENT '任务日志',`log_path` text COMMENT '日志文件路径',`start_time` datetime(3) NULL COMMENT '任务开始时间',`end_time` datetime(3) NULL COMMENT '任务结束时间',`duration` bigint COMMENT '执行耗时(秒)',`created_at` datetime(3) NULL COMMENT '创建时间',`scheduled_time` datetime(3) NULL COMMENT '定时任务执行时间',PRIMARY KEY (`id`),INDEX `idx_task_work_task_id` (`task_id`),INDEX `idx_task_work_template_id` (`template_id`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.505ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.609ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.612ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'task_ansible' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[31.297ms] [34;1m[rows:0][0m CREATE TABLE `task_ansible` (`id` bigint unsigned AUTO_INCREMENT COMMENT '''主键ID''',`name` varchar(100) NOT NULL COMMENT '''任务名称''',`description` text COMMENT '''任务描述''',`type` bigint NOT NULL DEFAULT 1 COMMENT '''任务类型:1-手动,2-Git,3-K8s''',`git_repo` varchar(255) COMMENT '''Git仓库地址''',`host_groups` text NOT NULL COMMENT '''主机分组JSON''',`all_host_ids` text NOT NULL COMMENT '''所有主机ID JSON数组''',`global_vars` text COMMENT '''全局变量JSON''',`status` bigint NOT NULL DEFAULT 1 COMMENT '''任务状态:1-等待中,2-运行中,3-成功,4-异常''',`error_msg` text COMMENT '''错误信息''',`task_count` bigint NOT NULL DEFAULT 0 COMMENT '''任务数量(Type=1时为上传文件数,Type=2时为解析的playbook数,Type=3时固定为1)''',`total_duration` bigint NOT NULL DEFAULT 0 COMMENT '''任务执行总耗时(秒,所有子任务耗时总和)''',`created_at` datetime(3) NOT NULL COMMENT '''创建时间''',`updated_at` datetime(3) NOT NULL COMMENT '''更新时间''',PRIMARY KEY (`id`),UNIQUE INDEX `idx_task_ansible_name` (`name`),INDEX `idx_task_status` (`status`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.583ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.945ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.295ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'task_ansiblework' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[29.189ms] [34;1m[rows:0][0m CREATE TABLE `task_ansiblework` (`id` bigint unsigned AUTO_INCREMENT COMMENT '''主键ID''',`task_id` bigint unsigned NOT NULL COMMENT '''父任务ID''',`entry_file_name` varchar(255) NOT NULL COMMENT '''入口文件名''',`entry_file_path` varchar(255) NOT NULL COMMENT '''入口文件路径''',`log_path` varchar(255) COMMENT '''日志路径''',`status` bigint NOT NULL DEFAULT 1 COMMENT '''子任务状态:1-等待中,2-运行中,3-成功,4-异常''',`start_time` datetime(3) NULL COMMENT '''开始时间''',`end_time` datetime(3) NULL COMMENT '''结束时间''',`duration` bigint COMMENT '''执行耗时(秒)''',`exit_code` bigint COMMENT '''退出代码''',`error_msg` text COMMENT '''错误信息''',PRIMARY KEY (`id`),INDEX `idx_task_id` (`task_id`),INDEX `idx_task_work_composite` (`task_id`,`status`))
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.609ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.745ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:24 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.755ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'monitor_agent' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[28.366ms] [34;1m[rows:0][0m CREATE TABLE `monitor_agent` (`id` bigint unsigned AUTO_INCREMENT NOT NULL COMMENT '''主键''',`host_id` bigint unsigned NOT NULL COMMENT '''主机ID''',`host_name` longtext COMMENT '''主机名称''',`version` varchar(191) DEFAULT '1.0.0' COMMENT '''Agent版本''',`status` bigint COMMENT '''状态:1->部署中,2->部署失败,3->运行中,4->已停止''',`install_path` longtext COMMENT '''安装路径''',`port` bigint DEFAULT 9100 COMMENT '''监听端口''',`pid` bigint COMMENT '''进程ID''',`last_heartbeat` datetime(3) NULL COMMENT '''最后心跳时间''',`update_time` datetime(3) NULL COMMENT '''更新时间''',`create_time` datetime(3) NOT NULL COMMENT '''创建时间''',`error_msg` text COMMENT '''错误信息''',`install_progress` bigint DEFAULT 0 COMMENT '''安装进度(0-100)''',PRIMARY KEY (`id`),INDEX `idx_monitor_agent_host_id` (`host_id`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.836ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.610ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.611ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'k8s_cluster' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[27.240ms] [34;1m[rows:0][0m CREATE TABLE `k8s_cluster` (`id` bigint unsigned AUTO_INCREMENT COMMENT '''主键ID''',`name` varchar(100) NOT NULL COMMENT '''集群名称''',`version` varchar(50) NOT NULL COMMENT '''集群版本''',`status` bigint NOT NULL DEFAULT 1 COMMENT '''集群状态:1-创建中,2-运行中,3-离线''',`credential` text COMMENT '''集群凭证(kubeconfig)''',`description` text COMMENT '''集群描述''',`cluster_type` bigint NOT NULL DEFAULT 1 COMMENT '''集群类型:1-自建,2-导入''',`node_count` bigint DEFAULT 0 COMMENT '''节点数量''',`ready_nodes` bigint DEFAULT 0 COMMENT '''就绪节点数''',`master_nodes` bigint DEFAULT 0 COMMENT '''Master节点数''',`worker_nodes` bigint DEFAULT 0 COMMENT '''Worker节点数''',`last_sync_at` datetime(3) NULL COMMENT '''最后同步时间''',`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`),UNIQUE INDEX `idx_k8s_cluster_name` (`name`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.608ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.740ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.739ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'app_application' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[25.843ms] [34;1m[rows:0][0m CREATE TABLE `app_application` (`id` bigint unsigned AUTO_INCREMENT,`name` varchar(255) NOT NULL,`code` varchar(255) NOT NULL,`business_group_id` bigint unsigned NOT NULL,`business_dept_id` bigint unsigned NOT NULL,`description` text,`repo_url` varchar(500),`dev_owners` json,`test_owners` json,`ops_owners` json,`programming_lang` varchar(100),`start_command` text,`stop_command` text,`health_api` varchar(500),`domains` json,`hosts` json,`databases` json,`other_res` json,`status` tinyint DEFAULT 1,`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`),UNIQUE INDEX `idx_app_application_code` (`code`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.505ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.596ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.569ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'app_jenkins_env' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[23.519ms] [34;1m[rows:0][0m CREATE TABLE `app_jenkins_env` (`id` bigint unsigned AUTO_INCREMENT,`app_id` bigint unsigned NOT NULL,`env_name` varchar(50) NOT NULL,`jenkins_server_id` bigint unsigned DEFAULT null,`job_name` varchar(255) DEFAULT '',`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`),INDEX `idx_app_jenkins_env_app_id` (`app_id`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.505ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.398ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.850ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'quick_deployments' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[23.911ms] [34;1m[rows:0][0m CREATE TABLE `quick_deployments` (`id` bigint unsigned AUTO_INCREMENT,`title` varchar(255) NOT NULL,`business_group_id` bigint unsigned NOT NULL,`business_dept_id` bigint unsigned NOT NULL,`description` text,`status` tinyint DEFAULT 1,`task_count` bigint NOT NULL DEFAULT 0,`execution_mode` tinyint DEFAULT 1,`creator_id` bigint unsigned NOT NULL,`creator_name` varchar(100),`start_time` datetime(3) NULL,`end_time` datetime(3) NULL,`duration` bigint,`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.508ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.124ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.884ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'quick_deployment_tasks' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[23.323ms] [34;1m[rows:0][0m CREATE TABLE `quick_deployment_tasks` (`id` bigint unsigned AUTO_INCREMENT,`deployment_id` bigint unsigned NOT NULL,`app_id` bigint unsigned NOT NULL,`app_name` varchar(255),`app_code` varchar(255),`environment` varchar(50),`jenkins_env_id` bigint unsigned NOT NULL,`jenkins_job_url` varchar(500),`build_number` bigint,`status` tinyint DEFAULT 1,`execute_order` bigint NOT NULL,`start_time` datetime(3) NULL,`end_time` datetime(3) NULL,`duration` bigint,`error_message` text,`log_url` varchar(500),`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`),INDEX `idx_quick_deployment_tasks_deployment_id` (`deployment_id`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.507ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.940ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.532ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'sys_operation_log' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[20.536ms] [34;1m[rows:0][0m CREATE TABLE `sys_operation_log` (`id` bigint unsigned AUTO_INCREMENT NOT NULL COMMENT '''主键''',`admin_id` bigint unsigned NOT NULL COMMENT '''管理员id''',`username` varchar(64) NOT NULL COMMENT '''管理员账号''',`method` varchar(64) NOT NULL COMMENT '''请求方式''',`ip` varchar(64) COMMENT '''IP''',`url` varchar(500) COMMENT '''URL''',`description` varchar(255) COMMENT '''操作描述''',`create_time` datetime(3) NOT NULL COMMENT '''创建时间''',PRIMARY KEY (`id`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.505ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.153ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.800ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'tool_link' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[21.615ms] [34;1m[rows:0][0m CREATE TABLE `tool_link` (`id` bigint unsigned AUTO_INCREMENT NOT NULL COMMENT '''主键''',`title` longtext NOT NULL COMMENT '''导航标题''',`icon` longtext COMMENT '''导航图标''',`link` longtext NOT NULL COMMENT '''链接地址''',`sort` bigint DEFAULT 0 COMMENT '''排序''',`create_time` datetime(3) NOT NULL COMMENT '''创建时间''',`update_time` datetime(3) NULL COMMENT '''更新时间''',PRIMARY KEY (`id`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[0.504ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.504ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'autoops%' ORDER BY SCHEMA_NAME='autoops' DESC,SCHEMA_NAME limit 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[1.321ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'autoops' AND table_name = 'tool_service_deploy' AND table_type = 'BASE TABLE'
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/pkg/db/migrate.go:46
+[0m[33m[23.349ms] [34;1m[rows:0][0m CREATE TABLE `tool_service_deploy` (`id` bigint unsigned AUTO_INCREMENT NOT NULL COMMENT '''主键''',`service_name` longtext NOT NULL COMMENT '''服务名称''',`service_id` longtext NOT NULL COMMENT '''服务ID''',`version` longtext NOT NULL COMMENT '''服务版本''',`host_id` bigint unsigned NOT NULL COMMENT '''主机ID''',`host_ip` longtext NOT NULL COMMENT '''主机IP''',`install_dir` longtext NOT NULL COMMENT '''安装目录''',`container_name` longtext COMMENT '''容器名称''',`ports` longtext COMMENT '''端口映射(JSON)''',`env_vars` longtext COMMENT '''环境变量(JSON)''',`status` bigint DEFAULT 0 COMMENT '''状态:0->部署中,1->运行中,2->已停止,3->部署失败''',`deploy_log` longtext COMMENT '''部署日志''',`create_time` datetime(3) NOT NULL COMMENT '''创建时间''',`update_time` datetime(3) NULL COMMENT '''更新时间''',PRIMARY KEY (`id`))
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/api/configcenter/dao/syncSchedule.go:70
+[0m[33m[7.156ms] [34;1m[rows:0][0m SELECT * FROM `config_sync_schedule` WHERE status = 1
+
+2026/03/05 20:51:25 [32mD:/pycharm/pythonProject/AutoOps/api/api/task/dao/taskJob.go:151
+[0m[33m[1.512ms] [34;1m[rows:0][0m SELECT * FROM `task_job` WHERE type = 2
+[36mINFO[0m[2026/03/05 - 20:51:25] 任务队列系统初始化成功                                  
+[36mINFO[0m[2026/03/05 - 20:51:25] Static upload directory: ./upload/ -> D:\pycharm\pythonProject\AutoOps\api\upload 
+[36mINFO[0m[2026/03/05 - 20:51:25] Swagger API文档已启用                             
+[36mINFO[0m[2026/03/05 - 20:51:25] Conflicting values for 'process.env.NODE_ENV' 
+[36mINFO[0m[2026/03/05 - 20:51:25]                                              
+[36mINFO[0m[2026/03/05 - 20:51:25]   App running at:                            
+[36mINFO[0m[2026/03/05 - 20:51:25]   - Local:   http://0.0.0.0:8000             
+[36mINFO[0m[2026/03/05 - 20:51:25]   - Network: http://0.0.0.0:8000             
+[36mINFO[0m[2026/03/05 - 20:51:25]                                              
+[36mINFO[0m[2026/03/05 - 20:51:25]   请注意，开发版本尚未优化                               
+[36mINFO[0m[2026/03/05 - 20:51:25]   要创建生产环境构建，请运行 go run main.go               
+[36mINFO[0m[2026/03/05 - 20:51:25]                                              
+[36mINFO[0m[2026/03/05 - 20:51:25] API文档地址: http://0.0.0.0:8000/swagger/index.html 

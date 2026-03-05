@@ -14,8 +14,8 @@ db:
   port: 3306
 #  db: gin-api
   db: autoops
-  username: root
-  password: devops@2025
+  username: admin
+  password: 123456
   charset: utf8
   # 最大空闲数
   maxIdle: 50
