@@ -6,7 +6,8 @@ server:
   # release模式
   #model:release /true/false
   enableSwagger: true
-
+  # 对外访问的基础URL（飞书 OAuth 回调地址前缀，需与飞书开放平台配置一致）
+  publicUrl: "http://127.0.0.1:8080/"
 # 数据库配置
 db:
   dialects: mysql
