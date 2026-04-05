@@ -197,3 +197,154 @@ export function deleteDeploy(id) {
     method: 'delete'
   })
 }
+
+// ==================== 运维知识库API ====================
+
+/**
+ * 创建知识
+ * @param {Object} data - 知识信息
+ * @param {string} data.title - 标题
+ * @param {string} data.category - 分类
+ * @param {string} data.content - Markdown内容
+ * @param {string} data.tags - 标签(JSON数组)
+ * @param {number} data.status - 状态:1->已发布,2->草稿
+ */
+export function createKnowledge(data) {
+  return request({
+    url: '/api/v1/knowledge',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 获取知识详情
+ * @param {number} id - 知识ID
+ */
+export function getKnowledgeById(id) {
+  return request({
+    url: `/api/v1/knowledge/${id}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 更新知识
+ * @param {Object} data - 知识信息
+ * @param {number} data.id - 知识ID
+ * @param {string} data.title - 标题
+ * @param {string} data.category - 分类
+ * @param {string} data.content - Markdown内容
+ * @param {string} data.tags - 标签(JSON数组)
+ * @param {number} data.status - 状态:1->已发布,2->草稿
+ */
+export function updateKnowledge(data) {
+  return request({
+    url: '/api/v1/knowledge',
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 删除知识
+ * @param {number} id - 知识ID
+ */
+export function deleteKnowledge(id) {
+  return request({
+    url: `/api/v1/knowledge/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 获取知识列表(分页)
+ * @param {Object} params - 查询参数
+ * @param {string} params.title - 标题(模糊查询)
+ * @param {string} params.category - 分类
+ * @param {number} params.status - 状态
+ * @param {number} params.pageNum - 页码
+ * @param {number} params.pageSize - 每页数量
+ */
+export function getKnowledgeList(params) {
+  return request({
+    url: '/api/v1/knowledge/list',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 获取所有分类
+ */
+export function getKnowledgeCategories() {
+  return request({
+    url: '/api/v1/knowledge/categories',
+    method: 'get'
+  })
+}
+
+// ==================== 知识分类管理API ====================
+
+/**
+ * 创建分类
+ * @param {Object} data - 分类信息
+ * @param {string} data.name - 分类名称
+ * @param {number} data.sort - 排序
+ * @param {string} data.description - 分类描述
+ */
+export function createCategory(data) {
+  return request({
+    url: '/api/v1/knowledge/category',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 获取分类详情
+ * @param {number} id - 分类ID
+ */
+export function getCategoryById(id) {
+  return request({
+    url: `/api/v1/knowledge/category/${id}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 更新分类
+ * @param {Object} data - 分类信息
+ * @param {number} data.id - 分类ID
+ * @param {string} data.name - 分类名称
+ * @param {number} data.sort - 排序
+ * @param {string} data.description - 分类描述
+ */
+export function updateCategory(data) {
+  return request({
+    url: '/api/v1/knowledge/category',
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 删除分类
+ * @param {number} id - 分类ID
+ */
+export function deleteCategory(id) {
+  return request({
+    url: `/api/v1/knowledge/category/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 获取分类列表
+ */
+export function getCategoryList() {
+  return request({
+    url: '/api/v1/knowledge/category/list',
+    method: 'get'
+  })
+}
