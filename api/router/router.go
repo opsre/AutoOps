@@ -96,6 +96,9 @@ func register(router *gin.Engine) {
 		apiGroup.POST("/login", controller.Login)    // 登录接口
 		// Agent心跳接口 - 不需要认证
 		apiGroup.POST("/monitor/agent/heartbeat", agentCtrl.UpdateHeartbeat)
+                
+                // 新增监控路由 (内部管理 Webhook)
+                monitor.InitMonitorRouter(apiGroup)
 		
 		// 需要 JWT鉴权 的接口
 		jwtGroup := apiGroup.Group("")
@@ -109,7 +112,7 @@ func register(router *gin.Engine) {
 			app.RegisterApplicationRoutes(jwtGroup)     // 应用管理路由
 			dashboard.RegisterDashboardRoutes(jwtGroup) // 看板模块路由
 			k8s.RegisterK8sRoutes(jwtGroup)
-			monitor.InitMonitorRouter(jwtGroup) // 新增监控路由
+			// monitor.InitMonitorRouter(apiGroup) // 新增监控路由
 			task.RegisterTaskRoutes(jwtGroup)   // 任务中心路由
 			tool.RegisterToolRoutes(jwtGroup)   // 导航工具路由
 		}
