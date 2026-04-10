@@ -144,6 +144,15 @@ export default {
                 icon: 'Message'
               })
             }
+            const alarmDataSourceExists = monitorMenu.menuSvoList.some(sub => sub.menuName === '告警数据源')
+            if (!alarmDataSourceExists) {
+              monitorMenu.menuSvoList.push({
+                id: 99998,
+                menuName: '数据源',
+                url: 'monitor/datasource',
+                icon: 'Odometer'
+              })
+            }
           }
         } else if (menuData) {
           // 如果数据存在但不是数组，尝试解析

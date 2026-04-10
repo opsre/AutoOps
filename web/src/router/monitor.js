@@ -1,6 +1,7 @@
 import AlarmNotify from '@/views/monitor/Alarm-notify.vue'
 import AlarmRules from '@/views/monitor/Alarm-rules.vue'
 import AlarmHistory from '@/views/monitor/alarm-history.vue'
+import DataSource from '@/views/monitor/DataSource.vue'
 import DBLog from '@/views/monitor/DBLog.vue'
 import LoginLog from '@/views/monitor/LoginLog.vue'
 import OperatorLog from '@/views/monitor/Operator.vue'
@@ -17,6 +18,11 @@ const routes = [
         path: '/monitor/alarm/rules',
         component: AlarmRules,
         meta: { sTitle: '监控中心', tTitle: '告警配置' }
+    },
+    {
+        path: '/monitor/datasource',
+        component: DataSource,
+        meta: { sTitle: '监控中心', tTitle: '数据源管理' }
     },
     {
         path: '/monitor/alarm/history',

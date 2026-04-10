@@ -14,12 +14,16 @@ type MonitorDataSourceService interface {
 }
 
 type monitorDataSourceService struct {
-	dao dao.MonitorDataSourceDao
+	dao          dao.MonitorDataSourceDao
+	groupRuleDao dao.MonitorAlertGroupRuleDao
+	ruleDao      dao.MonitorAlertRuleDao
 }
 
 func NewMonitorDataSourceService() MonitorDataSourceService {
 	return &monitorDataSourceService{
-		dao: dao.NewMonitorDataSourceDao(),
+		dao:          dao.NewMonitorDataSourceDao(),
+		groupRuleDao: dao.NewMonitorAlertGroupRuleDao(),
+		ruleDao:      dao.NewMonitorAlertRuleDao(),
 	}
 }
 
@@ -28,6 +32,18 @@ func (s *monitorDataSourceService) Create(data *model.MonitorDataSource) error {
 }
 
 func (s *monitorDataSourceService) Delete(id uint) error {
+	// First get all groups belonging to this data source
+	groups, err := s.groupRuleDao.GetAll()
+	if err == nil {
+		for _, g := range groups {
+			if g.DataSourceID == id {
+				// Delete rules under this group
+				s.ruleDao.DeleteByGroupID(g.ID)
+				// Delete the group
+				s.groupRuleDao.Delete(g.ID)
+			}
+		}
+	}
 	return s.dao.Delete(id)
 }
 

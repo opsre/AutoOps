@@ -203,3 +203,20 @@ func (c *MonitorAlertRuleController) GetRuleList(ctx *gin.Context) {
 	}
 	result.SuccessWithPage(ctx, list, total, req.Page, req.PageSize)
 }
+
+// CheckRuleExpr 表达式健康检查
+func (c *MonitorAlertRuleController) CheckRuleExpr(ctx *gin.Context) {
+	var req model.MonitorAlertRuleCheckReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		result.Failed(ctx, 400, "无效的请求参数")
+		return
+	}
+
+	data, err := c.ruleService.CheckRuleExpr(req.DataSourceID, req.Expr)
+	if err != nil {
+		result.Failed(ctx, 500, err.Error())
+		return
+	}
+
+	result.Success(ctx, data)
+}

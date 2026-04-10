@@ -107,12 +107,20 @@ func (c *AlertController) GetTemplate(ctx *gin.Context) {
 		}
 	}
 
-	list, err := c.alertService.GetTemplateList()
+	var query model.TemplateQuery
+	if err := ctx.ShouldBindQuery(&query); err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "参数错误")
+		return
+	}
+	list, total, err := c.alertService.GetTemplateList(&query)
 	if err != nil {
 		result.Failed(ctx, http.StatusBadRequest, "获取模板列表失败")
 		return
 	}
-	result.Success(ctx, map[string]interface{}{"list": list})
+	result.Success(ctx, map[string]interface{}{
+		"list":  list,
+		"total": total,
+	})
 }
 
 func (c *AlertController) ReceiveGitlabWebhook(ctx *gin.Context) {
@@ -175,7 +183,7 @@ func (c *AlertController) ReceivePrometheusWebhook(ctx *gin.Context) {
 	pMsg.RoundRobin = ctx.Query("rr")
 	pMsg.Split = ctx.Query("split")
 
-	GlobalAlertRouter, _ := c.alertService.GetAllAlertRouter()
+	GlobalAlertRouter, _, _ := c.alertService.GetAllAlertRouter(&model.RouterQuery{})
 	message, err := c.alertService.PrometheusAlertHandle(pMsg, p_json, p_alertmanager_json, GlobalAlertRouter)
 	if err != nil {
 		result.Failed(ctx, http.StatusInternalServerError, err.Error())
@@ -185,7 +193,26 @@ func (c *AlertController) ReceivePrometheusWebhook(ctx *gin.Context) {
 }
 
 func (c *AlertController) GetRecords(ctx *gin.Context) {
-	result.Success(ctx, map[string]interface{}{"list": []string{}})
+	var query model.RecordQuery
+	if err := ctx.ShouldBindQuery(&query); err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "参数错误")
+		return
+	}
+	if query.Page == 0 {
+		query.Page = 1
+	}
+	if query.PageSize == 0 {
+		query.PageSize = 10
+	}
+	list, total, err := c.alertService.GetAlertRecords(&query)
+	if err != nil {
+		result.Failed(ctx, http.StatusInternalServerError, "获取失败: "+err.Error())
+		return
+	}
+	result.Success(ctx, map[string]interface{}{
+		"list":  list,
+		"total": total,
+	})
 }
 
 func (c *AlertController) CleanRecords(ctx *gin.Context) {
@@ -193,109 +220,144 @@ func (c *AlertController) CleanRecords(ctx *gin.Context) {
 }
 
 type AlertRouterReq struct {
-RouterId           string                   `json:"RouterId"`
-RouterName         string                   `json:"RouterName"`
-RouterTplId        string                   `json:"RouterTplId"`
-RouterPurl         string                   `json:"RouterPurl"`
-RouterPat          string                   `json:"RouterPat"`
-RouterPatRR        bool                     `json:"RouterPatRR"`
-RouterSendResolved bool                     `json:"RouterSendResolved"`
-Rules              []map[string]interface{} `json:"Rules"`
+	RouterId           interface{}                   `json:"RouterId"`
+	RouterName         string                   `json:"RouterName"`
+	RouterTplId        interface{}                   `json:"RouterTplId"`
+	RouterPurl         string                   `json:"RouterPurl"`
+	RouterPat          string                   `json:"RouterPat"`
+	RouterPatRR        bool                     `json:"RouterPatRR"`
+	RouterSendResolved bool                     `json:"RouterSendResolved"`
+	Rules              []map[string]interface{} `json:"Rules"`
 }
 
 func (ac *AlertController) CreateRouter(ctx *gin.Context) {
-var req AlertRouterReq
-if err := ctx.ShouldBindJSON(&req); err != nil {
-result.Failed(ctx, http.StatusBadRequest, "参数绑定失败")
-return
-}
+	var req AlertRouterReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "参数绑定失败")
+		return
+	}
 
-rulesBytes, _ := json.Marshal(req.Rules)
-tplIdInt, _ := strconv.Atoi(req.RouterTplId)
+	rulesBytes, _ := json.Marshal(req.Rules)
+	tplIdInt := getInt(req.RouterTplId)
 
-router := &model.AlertRouter{
-Name:         req.RouterName,
-TplId:        tplIdInt,
-Rules:        string(rulesBytes),
-UrlOrPhone:   req.RouterPurl,
-AtSomeOne:    req.RouterPat,
-AtSomeOneRR:  req.RouterPatRR,
-SendResolved: req.RouterSendResolved,
-}
+	router := &model.AlertRouter{
+		Name:         req.RouterName,
+		TplId:        tplIdInt,
+		Rules:        string(rulesBytes),
+		UrlOrPhone:   req.RouterPurl,
+		AtSomeOne:    req.RouterPat,
+		AtSomeOneRR:  req.RouterPatRR,
+		SendResolved: req.RouterSendResolved,
+	}
 
-if err := ac.alertService.CreateAlertRouter(router); err != nil {
-result.Failed(ctx, http.StatusBadRequest, "创建失败: "+err.Error())
-return
-}
+	if err := ac.alertService.CreateAlertRouter(router); err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "创建失败: "+err.Error())
+		return
+	}
 
-result.Success(ctx, "success")
+	result.Success(ctx, "success")
 }
 
 func (ac *AlertController) UpdateRouter(ctx *gin.Context) {
-var req AlertRouterReq
-if err := ctx.ShouldBindJSON(&req); err != nil {
-result.Failed(ctx, http.StatusBadRequest, "参数绑定失败")
-return
-}
+	var req AlertRouterReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "参数绑定失败")
+		return
+	}
 
-id, err := strconv.Atoi(ctx.Param("id"))
-if err != nil {
-result.Failed(ctx, http.StatusBadRequest, "非法ID")
-return
-}
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "非法ID")
+		return
+	}
 
-rulesBytes, _ := json.Marshal(req.Rules)
-tplIdInt, _ := strconv.Atoi(req.RouterTplId)
+	rulesBytes, _ := json.Marshal(req.Rules)
+	tplIdInt := getInt(req.RouterTplId)
 
-router := &model.AlertRouter{
-Id:           id,
-Name:         req.RouterName,
-TplId:        tplIdInt,
-Rules:        string(rulesBytes),
-UrlOrPhone:   req.RouterPurl,
-AtSomeOne:    req.RouterPat,
-AtSomeOneRR:  req.RouterPatRR,
-SendResolved: req.RouterSendResolved,
-}
+	router := &model.AlertRouter{
+		Id:           id,
+		Name:         req.RouterName,
+		TplId:        tplIdInt,
+		Rules:        string(rulesBytes),
+		UrlOrPhone:   req.RouterPurl,
+		AtSomeOne:    req.RouterPat,
+		AtSomeOneRR:  req.RouterPatRR,
+		SendResolved: req.RouterSendResolved,
+	}
 
-if err := ac.alertService.UpdateAlertRouter(router); err != nil {
-result.Failed(ctx, http.StatusBadRequest, "更新失败: "+err.Error())
-return
-}
+	if err := ac.alertService.UpdateAlertRouter(router); err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "更新失败: "+err.Error())
+		return
+	}
 
-result.Success(ctx, "success")
+	result.Success(ctx, "success")
 }
 
 func (ac *AlertController) DeleteRouter(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "非法ID")
+		return
+	}
+
+	if err := ac.alertService.DeleteAlertRouter(id); err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "删除失败: "+err.Error())
+		return
+	}
+
+	result.Success(ctx, "success")
+}
+
+func (ac *AlertController) GetRouter(ctx *gin.Context) {
+	var query model.RouterQuery
+	if err := ctx.ShouldBindQuery(&query); err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "参数错误")
+		return
+	}
+	list, total, err := ac.alertService.GetAllAlertRouter(&query)
+	if err != nil {
+		result.Failed(ctx, http.StatusBadRequest, "获取失败: "+err.Error())
+		return
+	}
+	result.Success(ctx, map[string]interface{}{
+		"list":  list,
+		"total": total,
+	})
+}
+
+func (ac *AlertController) ReloadConfig(ctx *gin.Context) {
+	// Fake Reload, actual implementation can restart services or flush caches.
+	result.Success(ctx, "Config reloaded successfully")
+}
+
+func (ac *AlertController) HealthCheck(ctx *gin.Context) {
+	// Basic Health check
+	result.Success(ctx, map[string]string{"status": "ok", "component": "alert-router"})
+}
+
+func getInt(v interface{}) int {
+switch val := v.(type) {
+case string:
+i, _ := strconv.Atoi(val)
+return i
+case float64:
+return int(val)
+case int:
+return val
+}
+return 0
+}
+
+func (ac *AlertController) GetRouterById(ctx *gin.Context) {
 id, err := strconv.Atoi(ctx.Param("id"))
 if err != nil {
 result.Failed(ctx, http.StatusBadRequest, "非法ID")
 return
 }
-
-if err := ac.alertService.DeleteAlertRouter(id); err != nil {
-result.Failed(ctx, http.StatusBadRequest, "删除失败: "+err.Error())
-return
-}
-
-result.Success(ctx, "success")
-}
-
-func (ac *AlertController) GetRouter(ctx *gin.Context) {
-routers, err := ac.alertService.GetAllAlertRouter()
+router, err := ac.alertService.GetAlertRouterById(id)
 if err != nil {
-result.Failed(ctx, http.StatusBadRequest, "获取失败: "+err.Error())
+result.Failed(ctx, http.StatusBadRequest, "获取失败或不存在")
 return
 }
-result.Success(ctx, routers)
-}
-
-func (ac *AlertController) ReloadConfig(ctx *gin.Context) {
-// Fake Reload, actual implementation can restart services or flush caches.
-result.Success(ctx, "Config reloaded successfully")
-}
-
-func (ac *AlertController) HealthCheck(ctx *gin.Context) {
-// Basic Health check
-result.Success(ctx, map[string]string{"status": "ok", "component": "alert-router"})
+result.Success(ctx, router)
 }

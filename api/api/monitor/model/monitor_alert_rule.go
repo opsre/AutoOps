@@ -40,3 +40,9 @@ type MonitorAlertRuleQuery struct {
 	Status      string `form:"status" json:"status"`
 	Enabled     *int   `form:"enabled" json:"enabled"`
 }
+
+// MonitorAlertRuleCheckReq 表达式健康检查请求参数
+type MonitorAlertRuleCheckReq struct {
+	DataSourceID uint   `json:"data_source_id" binding:"required"`
+	Expr         string `json:"expr" binding:"required"`
+}

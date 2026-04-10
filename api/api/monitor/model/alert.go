@@ -95,3 +95,28 @@ type AlertConfig struct {
 func (AlertConfig) TableName() string {
         return "monitor_alert_config"
 }
+
+type TemplateQuery struct {
+        Page     int    `form:"page" json:"page"`
+        PageSize int    `form:"pageSize" json:"pageSize"`
+        Tplname  string `form:"tplname" json:"tplname"`
+        Tpltype  string `form:"tpltype" json:"tpltype"`
+        Tpluse   string `form:"tpluse" json:"tpluse"`
+}
+
+type RouterQuery struct {
+        Page       int    `form:"page" json:"page"`
+        PageSize   int    `form:"pageSize" json:"pageSize"`
+        Name       string `form:"name" json:"name"`
+        UrlOrPhone string `form:"urlOrPhone" json:"urlOrPhone"`
+        TplId      int    `form:"tplId" json:"tplId"`
+}
+
+type RecordQuery struct {
+        Page        int    `form:"page" json:"page"`
+        PageSize    int    `form:"pageSize" json:"pageSize"`
+        Alertname   string `form:"alertname" json:"alertname"`
+        AlertLevel  string `form:"alertLevel" json:"alertLevel"`
+        Instance    string `form:"instance" json:"instance"`
+        AlertStatus string `form:"alertStatus" json:"alertStatus"`
+}

@@ -176,9 +176,10 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" align="center" fixed="right">
+            <el-table-column label="操作" width="220" align="center" fixed="right">
               <template #default="{ row }">
                 <div class="operation-buttons">
+                  <el-button link type="success" icon="CircleCheck" @click="checkRule(row)">检查</el-button>
                   <el-button link type="primary" icon="EditPen" @click="openRuleDialog(row)">编辑</el-button>
                   <el-button link type="danger" icon="Delete" @click="deleteRule(row.ID || row.id)">删除</el-button>
                 </div>
@@ -401,6 +402,7 @@ import {
   getAlertRulesList,  getRuleListByGroup,  createAlertRule,
   updateAlertRule,
   deleteAlertRule,
+  checkAlertRule,
   getAlertStyles,
   createAlertStyle,
   updateAlertStyle,
@@ -784,6 +786,29 @@ const toggleRuleStatus = async (row) => {
   } catch (error) {
     row.enabled = row.enabled ? 0 : 1 // 恢复状态
     ElMessage.error('状态修改失败')
+  }
+}
+
+const checkRule = async (row) => {
+  if (!row.expr) return ElMessage.warning('规则表达式为空，无法检查')
+  try {
+    const group = groupList.value.find(item => parseInt(item.ID || item.id) === parseInt(row.group_id))
+    const dataSourceId = group ? group.data_source_id : activeDataSourceId.value
+    
+    if (!dataSourceId) return ElMessage.warning('未找到对应的数据源，无法检查')
+
+    const res = await checkAlertRule({
+      data_source_id: parseInt(dataSourceId),
+      expr: row.expr
+    })
+    
+    if (res.code === 200 || (res.data && res.data.code === 200)) {
+       ElMessage.success('检查通过，规则生效中')
+    } else {
+       ElMessage.warning('检查返回失败: ' + (res.data?.message || '请确认表达式'))
+    }
+  } catch (error) {
+    ElMessage.error(error.message || '检查发生错误，可能是由于表达式不合法')
   }
 }
 

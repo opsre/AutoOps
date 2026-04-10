@@ -34,6 +34,7 @@ func InitMonitorRouter(r *gin.RouterGroup) {
 	monitorGroup.DELETE("/alert/router/:id", alertController.DeleteRouter)
 	monitorGroup.PUT("/alert/router/:id", alertController.UpdateRouter)
 	monitorGroup.GET("/alert/routers", alertController.GetRouter)
+		monitorGroup.GET("/alert/router/:id", alertController.GetRouterById)
 	// Component Config Operations
 	monitorGroup.POST("/alert/router/reload", alertController.ReloadConfig)
 	monitorGroup.GET("/alert/router/health", alertController.HealthCheck)
@@ -81,6 +82,7 @@ func InitMonitorRouter(r *gin.RouterGroup) {
 	monitorGroup.GET("/alert/rule/:id", ruleController.GetRuleByID)
 	monitorGroup.GET("/alert/rules/:groupId", ruleController.GetRuleListByGroup)
 	monitorGroup.GET("/alert/rules_list", ruleController.GetRuleList)
+	monitorGroup.POST("/alert/rule/check", ruleController.CheckRuleExpr)
 
 	// Monitor Alert Rule Style CRUD
 	styleController := controller.NewMonitorAlertRuleStyleController()

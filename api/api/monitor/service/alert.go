@@ -28,14 +28,16 @@ type AlertServiceInterface interface {
 	CreateTemplate(tpl *alertModel.PrometheusAlertDB) error
 	DeleteTemplate(id int) error
 	UpdateTemplate(tpl *alertModel.PrometheusAlertDB) error
-	GetTemplateList() ([]*alertModel.PrometheusAlertDB, error)
+	GetTemplateList(query *alertModel.TemplateQuery) ([]*alertModel.PrometheusAlertDB, int64, error)
 	GetTemplateById(id int) (*alertModel.PrometheusAlertDB, error)
 	PrometheusAlertHandle(pMsg alertModel.PrometheusAlertMsg, pJson interface{}, pAlertManagerJson map[string]interface{}, GlobalAlertRouter []*alertModel.AlertRouter) (string, error)
-	GetAllAlertRouter() ([]*alertModel.AlertRouter, error)
+	GetAllAlertRouter(query *alertModel.RouterQuery) ([]*alertModel.AlertRouter, int64, error)
 	CreateAlertRouter(router *alertModel.AlertRouter) error
 	DeleteAlertRouter(id int) error
 	UpdateAlertRouter(router *alertModel.AlertRouter) error
 	GetAlertRouterById(id int) (*alertModel.AlertRouter, error)
+	GetAlertRecords(query *alertModel.RecordQuery) ([]*alertModel.AlertRecord, int64, error)
+	CleanAlertRecords() error
 }
 
 type alertService struct {
@@ -55,20 +57,20 @@ func (s *alertService) DeleteTemplate(id int) error { return s.alertDao.DeleteTe
 func (s *alertService) UpdateTemplate(tpl *alertModel.PrometheusAlertDB) error {
 	return s.alertDao.UpdateTemplate(tpl)
 }
-func (s *alertService) GetTemplateList() ([]*alertModel.PrometheusAlertDB, error) {
-	return s.alertDao.GetTemplateList()
+func (s *alertService) GetTemplateList(query *alertModel.TemplateQuery) ([]*alertModel.PrometheusAlertDB, int64, error) {
+	return s.alertDao.GetTemplateList(query)
 }
 func (s *alertService) GetTemplateById(id int) (*alertModel.PrometheusAlertDB, error) {
 	return s.alertDao.GetTemplateById(id)
 }
-func (s *alertService) GetAllAlertRouter() ([]*alertModel.AlertRouter, error) {
-	return s.alertDao.GetAllAlertRouter()
+func (s *alertService) GetAllAlertRouter(query *alertModel.RouterQuery) ([]*alertModel.AlertRouter, int64, error) {
+	return s.alertDao.GetAllAlertRouter(query)
 }
 
 func (s *alertService) PrometheusAlertHandle(pMsg alertModel.PrometheusAlertMsg, pJson interface{}, pAlertManagerJson map[string]interface{}, GlobalAlertRouter []*alertModel.AlertRouter) (string, error) {
 	logsign := "[AlertHandle]"
 
-	templates, err := s.alertDao.GetTemplateList()
+	templates, _, err := s.alertDao.GetTemplateList(&alertModel.TemplateQuery{})
 	if err != nil {
 		return "", fmt.Errorf("读取模板列表失败: %v", err)
 	}
@@ -82,9 +84,13 @@ func (s *alertService) PrometheusAlertHandle(pMsg alertModel.PrometheusAlertMsg,
 	}
 
 	var message string
-	if pMsg.Type != "" && PrometheusAlertTpl != nil {
-		fmt.Printf("[AlertHandle] 匹配到模板: %s, 模式 Split: %s, Tpluse: %s\n", PrometheusAlertTpl.Tplname, pMsg.Split, PrometheusAlertTpl.Tpluse)
-		if pMsg.Split != "false" && PrometheusAlertTpl.Tpluse == "Prometheus" {
+	if (pMsg.Type != "" && PrometheusAlertTpl != nil) || len(GlobalAlertRouter) > 0 {
+		if PrometheusAlertTpl != nil {
+			fmt.Printf("[AlertHandle] 匹配到模板: %s, 模式 Split: %s, Tpluse: %s\n", PrometheusAlertTpl.Tplname, pMsg.Split, PrometheusAlertTpl.Tpluse)
+		} else {
+			fmt.Printf("[AlertHandle] 未匹配或未传入模板, 使用Router全局匹配\n")
+		}
+		if pMsg.Split != "false" && (PrometheusAlertTpl == nil || PrometheusAlertTpl.Tpluse == "Prometheus") {
 			Alerts_Value, ok := pAlertManagerJson["alerts"].([]interface{})
 			if ok {
 				fmt.Printf("[AlertHandle] Alerts 数组长度: %d\n", len(Alerts_Value))
@@ -94,7 +100,11 @@ func (s *alertService) PrometheusAlertHandle(pMsg alertModel.PrometheusAlertMsg,
 					go s.SetRecord(AlertValue)
 
 					xalert := AlertValue.(map[string]interface{})
-					Return_pMsgs := s.AlertRouterSet(xalert, pMsg, PrometheusAlertTpl.Tpl, GlobalAlertRouter)
+					var tplStr string
+					if PrometheusAlertTpl != nil {
+						tplStr = PrometheusAlertTpl.Tpl
+					}
+					Return_pMsgs := s.AlertRouterSet(xalert, pMsg, tplStr, GlobalAlertRouter)
 					fmt.Printf("[AlertHandle] AlertRouterSet 路由匹配数量: %d\n", len(Return_pMsgs))
 					for _, Return_pMsg := range Return_pMsgs {
 						err, msg := s.TransformAlertMessage(pAlertManagerJson, Return_pMsg.Tpl)
@@ -111,6 +121,10 @@ func (s *alertService) PrometheusAlertHandle(pMsg alertModel.PrometheusAlertMsg,
 				fmt.Printf("[AlertHandle] pAlertManagerJson 中没有找到 alerts 数组\n")
 			}
 		} else {
+			if PrometheusAlertTpl == nil {
+				message = "非Split模式需要明确指定模板"
+				return message, nil
+			}
 			err, msg := s.TransformAlertMessage(pJson, PrometheusAlertTpl.Tpl)
 			if err != nil {
 				fmt.Printf("[AlertHandle] 模板渲染失败(非Split模式): %v\n", err)
@@ -128,93 +142,124 @@ func (s *alertService) PrometheusAlertHandle(pMsg alertModel.PrometheusAlertMsg,
 }
 
 func (s *alertService) AlertRouterSet(xalert map[string]interface{}, PMsg alertModel.PrometheusAlertMsg, Tpl string, GlobalAlertRouter []*alertModel.AlertRouter) []alertModel.PrometheusAlertMsg {
-	return_Msgs := []alertModel.PrometheusAlertMsg{}
-	PMsg.Tpl = Tpl
-	return_Msgs = append(return_Msgs, PMsg)
+return_Msgs := []alertModel.PrometheusAlertMsg{}
+if Tpl != "" {
+PMsg.Tpl = Tpl
+}
+if PMsg.Type != "" {
+return_Msgs = append(return_Msgs, PMsg)
+}
 
-	for _, router_value := range GlobalAlertRouter {
-		LabelMap := []alertModel.LabelMap{}
-		json.Unmarshal([]byte(router_value.Rules), &LabelMap)
-		rules_num := len(LabelMap)
-		rules_num_match := 0
+for _, router_value := range GlobalAlertRouter {
+var rawRules []map[string]interface{}
+json.Unmarshal([]byte(router_value.Rules), &rawRules)
+var LabelMap []alertModel.LabelMap
+for _, r := range rawRules {
+var lm alertModel.LabelMap
 
-		if xalert["status"] == "resolved" && !router_value.SendResolved {
-			labelsObj, exists := xalert["labels"].(map[string]interface{})
-			if exists {
-				if alertName, ok := labelsObj["alertname"].(string); ok {
-					fmt.Printf("告警名称：%s 路由规则：%s 路由恢复告警：%v\n", alertName, router_value.Name, router_value.SendResolved)
-				}
-			}
-			continue
-		}
+if v, ok := r["Name"].(string); ok {
+lm.Name = v
+} else if v, ok := r["key"].(string); ok {
+lm.Name = v
+}
 
-		for _, rule := range LabelMap {
-			if labelsObj, exists := xalert["labels"].(map[string]interface{}); exists {
-				for label_key, label_value := range labelsObj {
-					if rule.Regex {
-						if rule.Name == label_key {
-							if labelStr, ok := label_value.(string); ok {
-								tz := regexp.MustCompile(rule.Value)
-								if len(tz.FindAllString(labelStr, -1)) > 0 {
-									rules_num_match += 1
-								}
-							}
-						}
-					} else {
-						if rule.Name == label_key {
-							if labelStr, ok := label_value.(string); ok && rule.Value == labelStr {
-								rules_num_match += 1
-							}
-						}
-					}
-				}
-			}
-		}
+if v, ok := r["Value"].(string); ok {
+lm.Value = v
+} else if v, ok := r["value"].(string); ok {
+lm.Value = v
+}
 
-		if rules_num == rules_num_match && rules_num > 0 {
-			if router_value.Tpl != nil {
-				PMsg.Type = router_value.Tpl.Tpltype
-				PMsg.Tpl = router_value.Tpl.Tpl
-			}
-			atSomeOne := router_value.AtSomeOne
-			if router_value.AtSomeOneRR {
-				openIds := strings.Split(router_value.AtSomeOne, ",")
-				if len(openIds) > 1 {
-					duration := time.Since(time.Unix(0, 0))
-					days := duration.Hours() / 24
-					i := int(days) % len(openIds)
-					atSomeOne = openIds[i]
-				}
-			}
+if v, ok := r["Regex"].(bool); ok {
+lm.Regex = v
+} else if v, ok := r["type"].(string); ok {
+if v == "正则" {
+lm.Regex = true
+}
+}
 
-			tplType := ""
-			if router_value.Tpl != nil {
-				tplType = router_value.Tpl.Tpltype
-			}
+LabelMap = append(LabelMap, lm)
+}
 
-			switch tplType {
-			case "wx":
-				PMsg.Wxurl = router_value.UrlOrPhone
-				PMsg.AtSomeOne = atSomeOne
-			case "dd":
-				PMsg.Ddurl = router_value.UrlOrPhone
-				PMsg.AtSomeOne = atSomeOne
-			case "fs":
-				PMsg.Fsurl = router_value.UrlOrPhone
-				PMsg.AtSomeOne = atSomeOne
-			case "webhook":
-				PMsg.WebHookUrl = router_value.UrlOrPhone
-			case "email":
-				PMsg.Email = router_value.UrlOrPhone
-			case "rl":
-				PMsg.GroupId = router_value.UrlOrPhone
-			case "txdx", "hwdx", "bddx", "alydx", "txdh", "alydh", "rlydh", "7moordx", "7moordh":
-				PMsg.Phone = router_value.UrlOrPhone
-			}
-			return_Msgs = append(return_Msgs, PMsg)
-		}
-	}
-	return return_Msgs
+rules_num := len(LabelMap)
+rules_num_match := 0
+
+if xalert["status"] == "resolved" && !router_value.SendResolved {
+labelsObj, exists := xalert["labels"].(map[string]interface{})
+if exists {
+if alertName, ok := labelsObj["alertname"].(string); ok {
+fmt.Printf("告警名称：%s 路由规则：%s 路由恢复告警：%v\n", alertName, router_value.Name, router_value.SendResolved)
+}
+}
+continue
+}
+
+for _, rule := range LabelMap {
+if labelsObj, exists := xalert["labels"].(map[string]interface{}); exists {
+for label_key, label_value := range labelsObj {
+if rule.Regex {
+if rule.Name == label_key {
+if labelStr, ok := label_value.(string); ok {
+tz := regexp.MustCompile(rule.Value)
+if len(tz.FindAllString(labelStr, -1)) > 0 {
+rules_num_match += 1
+}
+}
+}
+} else {
+if rule.Name == label_key {
+if labelStr, ok := label_value.(string); ok && rule.Value == labelStr {
+rules_num_match += 1
+}
+}
+}
+}
+}
+}
+
+if rules_num == rules_num_match && rules_num > 0 {
+if router_value.Tpl != nil {
+PMsg.Type = router_value.Tpl.Tpltype
+PMsg.Tpl = router_value.Tpl.Tpl
+}
+atSomeOne := router_value.AtSomeOne
+if router_value.AtSomeOneRR {
+openIds := strings.Split(router_value.AtSomeOne, ",")
+if len(openIds) > 1 {
+duration := time.Since(time.Unix(0, 0))
+days := duration.Hours() / 24
+i := int(days) % len(openIds)
+atSomeOne = openIds[i]
+}
+}
+
+tplType := ""
+if router_value.Tpl != nil {
+tplType = router_value.Tpl.Tpltype
+}
+
+switch tplType {
+case "wx":
+PMsg.Wxurl = router_value.UrlOrPhone
+PMsg.AtSomeOne = atSomeOne
+case "dd":
+PMsg.Ddurl = router_value.UrlOrPhone
+PMsg.AtSomeOne = atSomeOne
+case "fs":
+PMsg.Fsurl = router_value.UrlOrPhone
+PMsg.AtSomeOne = atSomeOne
+case "webhook":
+PMsg.WebHookUrl = router_value.UrlOrPhone
+case "email":
+PMsg.Email = router_value.UrlOrPhone
+case "rl":
+PMsg.GroupId = router_value.UrlOrPhone
+case "txdx", "hwdx", "bddx", "alydx", "txdh", "alydh", "rlydh", "7moordx", "7moordh":
+PMsg.Phone = router_value.UrlOrPhone
+}
+return_Msgs = append(return_Msgs, PMsg)
+}
+}
+return return_Msgs
 }
 
 func (s *alertService) SetRecord(AlertValue interface{}) {
@@ -681,23 +726,25 @@ func Post7MOORmessage(message, phone, logsign string) string   { return "7moordx
 func Post7MOORphonecall(message, phone, logsign string) string { return "7moordh" }
 
 func (s *alertService) SendEmail(EmailBody, Emails, EmailTitle, logsign string) string {
-        openEmail := s.alertDao.GetAlertConfig("open-email")
-        if openEmail != "1" {
-                fmt.Printf("%s [email] email未配置未开启状态,请先开启\n", logsign)
-                return "email未配置未开启状态,请先开启"
-        }
+	openEmail := s.alertDao.GetAlertConfig("open-email")
+	if openEmail != "1" {
+		fmt.Printf("%s [email] email未配置未开启状态,请先开启\n", logsign)
+		return "email未配置未开启状态,请先开启"
+	}
 
-        serverHost := s.alertDao.GetAlertConfig("Email_host")
-        serverPort, _ := strconv.Atoi(s.alertDao.GetAlertConfig("Email_port"))
-        fromEmail := s.alertDao.GetAlertConfig("Email_user")
-        Passwd := s.alertDao.GetAlertConfig("Email_password")
-        if EmailTitle == "" {
-                EmailTitle = s.alertDao.GetAlertConfig("Email_title")
-        }
+	serverHost := s.alertDao.GetAlertConfig("Email_host")
+	serverPort, _ := strconv.Atoi(s.alertDao.GetAlertConfig("Email_port"))
+	fromEmail := s.alertDao.GetAlertConfig("Email_user")
+	Passwd := s.alertDao.GetAlertConfig("Email_password")
+	if EmailTitle == "" {
+		EmailTitle = s.alertDao.GetAlertConfig("Email_title")
+	}
 
-        SendToEmails := []string{}
-        m := gomail.NewMessage()
-        if len(Emails) == 0 { return "收件人不能为空" }
+	SendToEmails := []string{}
+	m := gomail.NewMessage()
+	if len(Emails) == 0 {
+		return "收件人不能为空"
+	}
 
 	for _, Email := range strings.Split(Emails, ",") {
 		SendToEmails = append(SendToEmails, strings.TrimSpace(Email))
@@ -738,10 +785,18 @@ func SendKafka(message, logsign string) string                              { re
 func (s *alertService) SendMessagePrometheusAlert(message string, pmsg *alertModel.PrometheusAlertMsg, logsign string) string {
 	Title := "AutoOps Alert"
 	var ReturnMsg string
-        if pmsg.Wxurl == "" { pmsg.Wxurl = s.alertDao.GetAlertConfig("wxurl") }
-        if pmsg.Ddurl == "" { pmsg.Ddurl = s.alertDao.GetAlertConfig("ddurl") }
-        if pmsg.Fsurl == "" { pmsg.Fsurl = s.alertDao.GetAlertConfig("fsurl") }
-        if pmsg.Email == "" { pmsg.Email = s.alertDao.GetAlertConfig("Default_emails") }
+	if pmsg.Wxurl == "" {
+		pmsg.Wxurl = s.alertDao.GetAlertConfig("wxurl")
+	}
+	if pmsg.Ddurl == "" {
+		pmsg.Ddurl = s.alertDao.GetAlertConfig("ddurl")
+	}
+	if pmsg.Fsurl == "" {
+		pmsg.Fsurl = s.alertDao.GetAlertConfig("fsurl")
+	}
+	if pmsg.Email == "" {
+		pmsg.Email = s.alertDao.GetAlertConfig("Default_emails")
+	}
 
 	switch pmsg.Type {
 	case "wx":
@@ -821,18 +876,26 @@ func (s *alertService) SendMessagePrometheusAlert(message string, pmsg *alertMod
 }
 
 func (s *alertService) CreateAlertRouter(router *alertModel.AlertRouter) error {
-router.Created = time.Now()
-return s.alertDao.CreateAlertRouter(router)
+	router.Created = time.Now()
+	return s.alertDao.CreateAlertRouter(router)
 }
 
 func (s *alertService) DeleteAlertRouter(id int) error {
-return s.alertDao.DeleteAlertRouter(id)
+	return s.alertDao.DeleteAlertRouter(id)
 }
 
 func (s *alertService) UpdateAlertRouter(router *alertModel.AlertRouter) error {
-return s.alertDao.UpdateAlertRouter(router)
+	return s.alertDao.UpdateAlertRouter(router)
 }
 
 func (s *alertService) GetAlertRouterById(id int) (*alertModel.AlertRouter, error) {
-return s.alertDao.GetAlertRouterById(id)
+	return s.alertDao.GetAlertRouterById(id)
+}
+
+func (s *alertService) GetAlertRecords(query *alertModel.RecordQuery) ([]*alertModel.AlertRecord, int64, error) {
+	return s.alertDao.GetAlertRecords(query)
+}
+
+func (s *alertService) CleanAlertRecords() error {
+	return s.alertDao.CleanAlertRecords()
 }
