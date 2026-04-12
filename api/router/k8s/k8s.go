@@ -19,6 +19,7 @@ func RegisterK8sRoutes(router *gin.RouterGroup) {
 	k8sIngressCtrl := controller.NewK8sIngressController(common.GetDB())
 	k8sStorageCtrl := controller.NewK8sStorageController(common.GetDB())
 	k8sConfigCtrl := controller.NewK8sConfigController(common.GetDB())
+	k8sCRDCtrl := controller.NewK8sCRDController(common.GetDB())
 	
 	// K8s集群管理路由
 	router.POST("/k8s/cluster", middleware.AuthMiddleware(), kubeClusterCtrl.CreateCluster)             // 创建集群
@@ -205,13 +206,23 @@ func RegisterK8sRoutes(router *gin.RouterGroup) {
 	router.PUT("/k8s/cluster/:id/namespaces/:namespaceName/configmaps/:configMapName/yaml", middleware.AuthMiddleware(), k8sConfigCtrl.UpdateConfigMapYaml) // 更新ConfigMap YAML
 
 	// Secret基础CRUD路由
-	router.GET("/k8s/cluster/:id/namespaces/:namespaceName/secrets", middleware.AuthMiddleware(), k8sConfigCtrl.GetSecrets)                // 获取Secret列表
+	router.GET("/k8s/cluster/:id/namespaces/:namespaceName/secrets", middleware.AuthMiddleware(), k8sConfigCtrl.GetSecrets)                  // 获取Secret列表
 	router.GET("/k8s/cluster/:id/namespaces/:namespaceName/secrets/:secretName", middleware.AuthMiddleware(), k8sConfigCtrl.GetSecretDetail) // 获取Secret详情
-	router.POST("/k8s/cluster/:id/namespaces/:namespaceName/secrets", middleware.AuthMiddleware(), k8sConfigCtrl.CreateSecret)             // 创建Secret
-	router.PUT("/k8s/cluster/:id/namespaces/:namespaceName/secrets/:secretName", middleware.AuthMiddleware(), k8sConfigCtrl.UpdateSecret)  // 更新Secret
+	router.POST("/k8s/cluster/:id/namespaces/:namespaceName/secrets", middleware.AuthMiddleware(), k8sConfigCtrl.CreateSecret)               // 创建Secret
+	router.PUT("/k8s/cluster/:id/namespaces/:namespaceName/secrets/:secretName", middleware.AuthMiddleware(), k8sConfigCtrl.UpdateSecret)    // 更新Secret
 	router.DELETE("/k8s/cluster/:id/namespaces/:namespaceName/secrets/:secretName", middleware.AuthMiddleware(), k8sConfigCtrl.DeleteSecret) // 删除Secret
 
 	// Secret YAML管理路由
 	router.GET("/k8s/cluster/:id/namespaces/:namespaceName/secrets/:secretName/yaml", middleware.AuthMiddleware(), k8sConfigCtrl.GetSecretYaml)    // 获取Secret YAML
 	router.PUT("/k8s/cluster/:id/namespaces/:namespaceName/secrets/:secretName/yaml", middleware.AuthMiddleware(), k8sConfigCtrl.UpdateSecretYaml) // 更新Secret YAML
+
+	// ===================== K8s CRD管理路由 =====================
+	router.GET("/k8s/cluster/:id/crds/groups", middleware.AuthMiddleware(), k8sCRDCtrl.GetCRDGroups)                                                                // 获取CRD API Group列表
+	router.GET("/k8s/cluster/:id/crds", middleware.AuthMiddleware(), k8sCRDCtrl.GetCRDList)                                                                         // 获取CRD列表
+	router.GET("/k8s/cluster/:id/namespaces/:namespaceName/crds/:crdName/resources", middleware.AuthMiddleware(), k8sCRDCtrl.GetCustomResourceList)                 // 获取自定义资源列表
+	router.GET("/k8s/cluster/:id/namespaces/:namespaceName/crds/:crdName/resources/:crName", middleware.AuthMiddleware(), k8sCRDCtrl.GetCustomResourceDetail)       // 获取自定义资源详情
+	router.POST("/k8s/cluster/:id/namespaces/:namespaceName/crds/:crdName/resources", middleware.AuthMiddleware(), k8sCRDCtrl.CreateCustomResource)                 // 创建自定义资源
+	router.DELETE("/k8s/cluster/:id/namespaces/:namespaceName/crds/:crdName/resources/:crName", middleware.AuthMiddleware(), k8sCRDCtrl.DeleteCustomResource)       // 删除自定义资源
+	router.GET("/k8s/cluster/:id/namespaces/:namespaceName/crds/:crdName/resources/:crName/yaml", middleware.AuthMiddleware(), k8sCRDCtrl.GetCustomResourceYaml)    // 获取自定义资源 YAML
+	router.PUT("/k8s/cluster/:id/namespaces/:namespaceName/crds/:crdName/resources/:crName/yaml", middleware.AuthMiddleware(), k8sCRDCtrl.UpdateCustomResourceYaml) // 更新自定义资源 YAML
 }
