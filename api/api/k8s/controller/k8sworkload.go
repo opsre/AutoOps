@@ -462,7 +462,10 @@ func (ctrl *K8sWorkloadController) GetPodLogs(c *gin.Context) {
 
 	containerName := c.Query("container")
 
-	ctrl.service.GetPodLogs(c, uint(clusterId), namespaceName, podName, containerName)
+	// 解析follow参数，如果为true则开启流式日志，否则返回历史日志
+	follow := c.Query("follow") == "true"
+
+	ctrl.service.GetPodLogs(c, uint(clusterId), namespaceName, podName, containerName, follow)
 }
 
 // GetPodEvents 获取Pod事件

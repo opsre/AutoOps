@@ -145,13 +145,13 @@ const saving = ref(false)
 const validating = ref(false)
 const validationResult = ref(null)
 
-// 计算编辑器高度 - 根据内容行数动态调整
+// 计算编辑器动态高度，配合外层父容器滚动
 const editorHeight = computed(() => {
-  if (!editableYaml.value) return '300px'
+  if (!editableYaml.value) return '100%'
 
   const lines = editableYaml.value.split('\n').length
-  // 每行约21px高度(14px字体 + 1.5倍行高 = 21px),加上padding 20px
-  const calculatedHeight = Math.max(300, lines * 21 + 20)
+  // 按照字体行高估算动态高度，让内部元素撑开，父容器负责自适应包裹和出现滑动窗口
+  const calculatedHeight = Math.max(400, lines * 21 + 40)
   return `${calculatedHeight}px`
 })
 
@@ -425,27 +425,64 @@ defineExpose({
 }
 
 .yaml-editor-container {
-  border: 1px solid #dcdfe6;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 60vh;
+  min-height: 400px;
+  background: #ffffff;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  position: relative;
+}
+
+/* 滚动条美化 (针对容器本身) */
+.yaml-editor-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.yaml-editor-container::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.yaml-editor-container::-webkit-scrollbar-track {
+  background-color: #f8fafc;
 }
 
 /* 只读YAML查看器样式 */
 .yaml-viewer {
-  background: #f8f9fa;
-  overflow: visible;
+  background: #ffffff;
+  height: 100%;
+  overflow-y: auto; /* 保留给只读模式 */
+}
+
+/* 滚动条美化 */
+.yaml-viewer::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.yaml-viewer::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.yaml-viewer::-webkit-scrollbar-track {
+  background-color: #f8fafc;
 }
 
 .yaml-text {
   margin: 0;
-  padding: 16px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  color: #2c3e50;
+  padding: 20px;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #334155;
   background: transparent;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-break: break-all;
 }
 
 .validation-result {

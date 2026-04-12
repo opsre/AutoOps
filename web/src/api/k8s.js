@@ -2,7 +2,7 @@ import request from "@/utils/request"
 
 export default {
     // K8s集群管理
-    
+
     // 创建K8s集群
     createCluster(data) {
         return request({
@@ -63,7 +63,7 @@ export default {
     },
 
     // K8s节点管理
-    
+
     // 获取集群节点列表
     getClusterNodes(clusterId, params) {
         return request({
@@ -161,7 +161,7 @@ export default {
     },
 
     // K8s任务管理
-    
+
     // 创建K8s部署任务
     createK8sTask(data) {
         return request({
@@ -224,7 +224,7 @@ export default {
     },
 
     // K8s资源管理
-    
+
     // 获取集群资源使用情况
     getClusterResources(clusterId) {
         return request({
@@ -261,7 +261,7 @@ export default {
     },
 
     // K8s配置管理
-    
+
     // 更新集群配置
     updateClusterConfig(clusterId, data) {
         return request({
@@ -297,7 +297,7 @@ export default {
     },
 
     // K8s命名空间管理
-    
+
     // 获取集群命名空间列表
     getNamespaces(clusterId, params) {
         return request({
@@ -333,7 +333,7 @@ export default {
     },
 
     // ResourceQuota管理
-    
+
     // 获取ResourceQuota列表
     getResourceQuotas(clusterId, namespaceName) {
         return request({
@@ -369,7 +369,7 @@ export default {
     },
 
     // LimitRange管理
-    
+
     // 获取LimitRange列表
     getLimitRanges(clusterId, namespaceName) {
         return request({
@@ -405,7 +405,7 @@ export default {
     },
 
     // K8s工作负载管理
-    
+
     // 获取工作负载列表
     getWorkloadList(clusterId, namespaceName, params) {
         return request({
@@ -432,7 +432,7 @@ export default {
     },
 
     // Deployment管理
-    
+
     // 创建Deployment
     createDeployment(clusterId, namespaceName, data) {
         return request({
@@ -494,7 +494,7 @@ export default {
     },
 
     // K8s Pod管理
-    
+
     // 获取Pod列表
     getPodList(clusterId, namespaceName, params) {
         return request({
@@ -513,13 +513,31 @@ export default {
         })
     },
 
-    // 获取Pod日志
+    // 获取Pod日志(HTTP 短连接)
     getPodLogs(clusterId, namespaceName, podName, params) {
         return request({
             url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/logs`,
             method: 'get',
             params: params
         })
+    },
+
+    // 获取Pod日志的 WebSocket 连接地址(实时追踪 follow=true)
+    getPodLogsWsUrl(clusterId, namespaceName, podName, params) {
+        // 根据环境变量获取 WebSocket 的基础地址 (将 http/https 转换为 ws/wss)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        let baseUrl = process.env.VUE_APP_API_BASE_URL || window.location.origin;
+        baseUrl = baseUrl.replace(/^https?:/, protocol).replace(/\/$/, '');
+
+        let url = `${baseUrl}/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/logs?follow=true`;
+        if (params) {
+            Object.keys(params).forEach(key => {
+                if (params[key] !== undefined && params[key] !== null) {
+                    url += `&${key}=${encodeURIComponent(params[key])}`;
+                }
+            });
+        }
+        return url;
     },
 
     // 获取Pod YAML
@@ -595,7 +613,7 @@ export default {
     },
 
     // K8s监控管理
-    
+
     // 获取Pod监控指标
     getPodMetrics(clusterId, namespaceName, podName) {
         return request({
@@ -802,6 +820,84 @@ export default {
             url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/ingresses/test-backend`,
             method: 'post',
             data: data
+        })
+    },
+
+    // K8s 文件管理
+
+    // 上传文件到Pod容器
+    uploadPodFile(clusterId, namespaceName, podName, data) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/files/upload`,
+            method: 'post',
+            data: data,
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+    },
+
+    // 下载Pod容器中的文件
+    downloadPodFile(clusterId, namespaceName, podName, containerName, path) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/files/download`,
+            method: 'get',
+            params: { containerName, path },
+            responseType: 'blob'
+        })
+    },
+
+    // 获取Pod容器中的文件列表
+    getPodFileList(clusterId, namespaceName, podName, containerName, path) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/files/list`,
+            method: 'get',
+            params: { containerName, path }
+        })
+    },
+
+    // 获取Pod容器中的文件内容
+    getPodFileContent(clusterId, namespaceName, podName, containerName, path) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/files/content`,
+            method: 'get',
+            params: { containerName, path }
+        })
+    },
+
+    // 创建Pod容器中的目录
+    createPodDirectory(clusterId, namespaceName, podName, containerName, path) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/files/directory`,
+            method: 'post',
+            data: { containerName, path }
+        })
+    },
+
+    // 更新Pod容器中的文件内容
+    updatePodFileContent(clusterId, namespaceName, podName, containerName, path, content) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/files/content`,
+            method: 'put',
+            data: { containerName, path, content }
+        })
+    },
+
+    // 删除Pod容器中的文件
+    deletePodFile(clusterId, namespaceName, podName, containerName, path) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/files`,
+            method: 'delete',
+            params: { containerName, path }
+        })
+    },
+
+    //热加载
+    hotReloadPod(clusterId, namespaceName, podName, containerName) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/pods/${podName}/hot-reload`,
+            method: 'post',
+            data: { containerName }
         })
     },
 
@@ -1091,6 +1187,79 @@ export default {
     updateSecretYaml(clusterId, namespaceName, secretName, yamlContent) {
         return request({
             url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/secrets/${secretName}/yaml`,
+            method: 'put',
+            data: { yaml: yamlContent }
+        })
+    },
+
+    // ==========================================
+    // K8s CRD (自定义资源) 管理
+    // ==========================================
+
+    // 获取 CRD API Group 列表
+    getCRDGroups(clusterId) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/crds/groups`,
+            method: 'get'
+        })
+    },
+
+    // 获取系统中全部的CRD列表
+    getCRDList(clusterId, params) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/crds`,
+            method: 'get',
+            params: params
+        })
+    },
+
+    // 获取某个CRD下的自定义资源(CR)列表
+    getCustomResourceList(clusterId, namespaceName, crdName, params) {
+        return request({
+            // 假设crdName格式为 "prometheusrules.monitoring.coreos.com"
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/crds/${crdName}/resources`,
+            method: 'get',
+            params: params
+        })
+    },
+
+    // 获取指定的自定义资源详情
+    getCustomResourceDetail(clusterId, namespaceName, crdName, crName) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/crds/${crdName}/resources/${crName}`,
+            method: 'get'
+        })
+    },
+
+    // 创建自定义资源
+    createCustomResource(clusterId, namespaceName, crdName, data) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/crds/${crdName}/resources`,
+            method: 'post',
+            data: data
+        })
+    },
+
+    // 删除自定义资源
+    deleteCustomResource(clusterId, namespaceName, crdName, crName) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/crds/${crdName}/resources/${crName}`,
+            method: 'delete'
+        })
+    },
+
+    // 获取自定义资源的 YAML
+    getCustomResourceYaml(clusterId, namespaceName, crdName, crName) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/crds/${crdName}/resources/${crName}/yaml`,
+            method: 'get'
+        })
+    },
+
+    // 更新自定义资源的 YAML
+    updateCustomResourceYaml(clusterId, namespaceName, crdName, crName, yamlContent) {
+        return request({
+            url: `/api/v1/k8s/cluster/${clusterId}/namespaces/${namespaceName}/crds/${crdName}/resources/${crName}/yaml`,
             method: 'put',
             data: { yaml: yamlContent }
         })

@@ -232,10 +232,16 @@ export default {
       this.isConnecting = true;
       try {
         const token = storage.getItem('token');
-        // 动态获取WebSocket URL，支持nginx代理
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const wsUrl = `${protocol}//${host}/api/v1/cmdb/hostssh/connect/${this.currentHost.id}?token=${encodeURIComponent(token)}`;
+        const getWsBaseUrl = () => {
+          const baseUrl = (process.env.VUE_APP_API_BASE_URL || '').replace(/\/$/, '')
+          if (baseUrl.startsWith('http')) {
+            return baseUrl.replace(/^http/, 'ws')
+          }
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+          return `${protocol}//${window.location.host}${baseUrl}`
+        }
+
+        const wsUrl = `${getWsBaseUrl()}/api/v1/cmdb/hostssh/connect/${this.currentHost.id}?token=${encodeURIComponent(token)}`;
 
         this.socket = new WebSocket(wsUrl);
         

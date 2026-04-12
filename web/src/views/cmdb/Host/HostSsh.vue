@@ -188,9 +188,16 @@ export default {
           const token = storage.getItem('token')
   
 
-        // 使用当前页面的host，支持Docker部署
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const wsUrl = `${protocol}//${window.location.host}/api/v1/cmdb/hostssh/connect/${this.currentHost.id}?token=${encodeURIComponent(token)}`
+        const getWsBaseUrl = () => {
+          const baseUrl = (process.env.VUE_APP_API_BASE_URL || '').replace(/\/$/, '')
+          if (baseUrl.startsWith('http')) {
+            return baseUrl.replace(/^http/, 'ws')
+          }
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+          return `${protocol}//${window.location.host}${baseUrl}`
+        }
+
+        const wsUrl = `${getWsBaseUrl()}/api/v1/cmdb/hostssh/connect/${this.currentHost.id}?token=${encodeURIComponent(token)}`
         
         console.log('WebSocket连接URL:', wsUrl)
         // 创建WebSocket连接并添加认证头

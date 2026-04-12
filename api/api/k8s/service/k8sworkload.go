@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"dodevops-api/common/result"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -36,41 +38,41 @@ type IK8sWorkloadService interface {
 	// 工作负载列表和详情
 	GetWorkloads(c *gin.Context, clusterId uint, namespaceName string, workloadType string)
 	GetWorkloadDetail(c *gin.Context, clusterId uint, namespaceName string, workloadType string, workloadName string)
-	
+
 	// Deployment管理
 	CreateDeployment(c *gin.Context, clusterId uint, namespaceName string, req *model.CreateDeploymentRequest)
 	UpdateDeployment(c *gin.Context, clusterId uint, namespaceName string, deploymentName string, req *model.UpdateWorkloadRequest)
 	DeleteDeployment(c *gin.Context, clusterId uint, namespaceName string, deploymentName string)
 	ScaleDeployment(c *gin.Context, clusterId uint, namespaceName string, deploymentName string, req *model.ScaleWorkloadRequest)
 	RestartDeployment(c *gin.Context, clusterId uint, namespaceName string, deploymentName string)
-	
+
 	// StatefulSet管理
 	CreateStatefulSet(c *gin.Context, clusterId uint, namespaceName string, req *model.CreateStatefulSetRequest)
 	UpdateStatefulSet(c *gin.Context, clusterId uint, namespaceName string, statefulSetName string, req *model.UpdateWorkloadRequest)
 	DeleteStatefulSet(c *gin.Context, clusterId uint, namespaceName string, statefulSetName string)
 	ScaleStatefulSet(c *gin.Context, clusterId uint, namespaceName string, statefulSetName string, req *model.ScaleWorkloadRequest)
 	RestartStatefulSet(c *gin.Context, clusterId uint, namespaceName string, statefulSetName string)
-	
+
 	// DaemonSet管理
 	CreateDaemonSet(c *gin.Context, clusterId uint, namespaceName string, req *model.CreateDaemonSetRequest)
 	UpdateDaemonSet(c *gin.Context, clusterId uint, namespaceName string, daemonSetName string, req *model.UpdateWorkloadRequest)
 	DeleteDaemonSet(c *gin.Context, clusterId uint, namespaceName string, daemonSetName string)
 	RestartDaemonSet(c *gin.Context, clusterId uint, namespaceName string, daemonSetName string)
-	
+
 	// Job管理
 	CreateJob(c *gin.Context, clusterId uint, namespaceName string, req *model.CreateJobRequest)
 	DeleteJob(c *gin.Context, clusterId uint, namespaceName string, jobName string)
-	
+
 	// CronJob管理
 	CreateCronJob(c *gin.Context, clusterId uint, namespaceName string, req *model.CreateCronJobRequest)
 	UpdateCronJob(c *gin.Context, clusterId uint, namespaceName string, cronJobName string, req *model.UpdateWorkloadRequest)
 	DeleteCronJob(c *gin.Context, clusterId uint, namespaceName string, cronJobName string)
-	
+
 	// Pod管理
 	GetPods(c *gin.Context, clusterId uint, namespaceName string)
 	GetPodDetail(c *gin.Context, clusterId uint, namespaceName string, podName string)
 	DeletePod(c *gin.Context, clusterId uint, namespaceName string, podName string)
-	GetPodLogs(c *gin.Context, clusterId uint, namespaceName string, podName string, containerName string)
+	GetPodLogs(c *gin.Context, clusterId uint, namespaceName string, podName string, containerName string, follow bool)
 	GetPodEvents(c *gin.Context, clusterId uint, namespaceName string, podName string)
 	GetPodYaml(c *gin.Context, clusterId uint, namespaceName string, podName string)
 	UpdatePodYaml(c *gin.Context, clusterId uint, namespaceName string, podName string, req *model.UpdatePodYAMLRequest)
@@ -422,73 +424,73 @@ func (s *K8sWorkloadServiceImpl) podMatchesSelector(podLabels, selectorLabels ma
 // convertPodToWorkload 转换Pod为工作负载
 func (s *K8sWorkloadServiceImpl) convertPodToWorkload(pod *corev1.Pod) model.K8sWorkload {
 	return model.K8sWorkload{
-		Name:         pod.Name,
-		Type:         model.WorkloadTypePod,
-		Namespace:    pod.Namespace,
-		Labels:       pod.Labels,
-		Replicas:     1,    // Pod总是只有1个副本
+		Name:      pod.Name,
+		Type:      model.WorkloadTypePod,
+		Namespace: pod.Namespace,
+		Labels:    pod.Labels,
+		Replicas:  1, // Pod总是只有1个副本
 		ReadyReplicas: func() int32 {
 			if s.getPodStatus(pod) == "Running" {
 				return 1
 			}
 			return 0
 		}(),
-		Resources:    s.extractPodResources(&pod.Spec),
-		Images:       s.extractImages(&pod.Spec),
-		Status:       s.getPodStatus(pod),
-		CreatedAt:    pod.CreationTimestamp.Format(time.RFC3339),
-		UpdatedAt:    pod.CreationTimestamp.Format(time.RFC3339), // Pod通常不会更新，使用创建时间
+		Resources: s.extractPodResources(&pod.Spec),
+		Images:    s.extractImages(&pod.Spec),
+		Status:    s.getPodStatus(pod),
+		CreatedAt: pod.CreationTimestamp.Format(time.RFC3339),
+		UpdatedAt: pod.CreationTimestamp.Format(time.RFC3339), // Pod通常不会更新，使用创建时间
 	}
 }
 
 // convertDeploymentToWorkload 转换Deployment为工作负载
 func (s *K8sWorkloadServiceImpl) convertDeploymentToWorkload(deployment *appsv1.Deployment) model.K8sWorkload {
 	return model.K8sWorkload{
-		Name:         deployment.Name,
-		Type:         model.WorkloadTypeDeployment,
-		Namespace:    deployment.Namespace,
-		Labels:       deployment.Labels,
-		Replicas:     *deployment.Spec.Replicas,
+		Name:          deployment.Name,
+		Type:          model.WorkloadTypeDeployment,
+		Namespace:     deployment.Namespace,
+		Labels:        deployment.Labels,
+		Replicas:      *deployment.Spec.Replicas,
 		ReadyReplicas: deployment.Status.ReadyReplicas,
-		Resources:    s.extractPodResources(&deployment.Spec.Template.Spec),
-		Images:       s.extractImages(&deployment.Spec.Template.Spec),
-		Status:       s.getDeploymentStatus(deployment),
-		CreatedAt:    deployment.CreationTimestamp.Format(time.RFC3339),
-		UpdatedAt:    s.getLastUpdateTime(deployment.Status.Conditions),
+		Resources:     s.extractPodResources(&deployment.Spec.Template.Spec),
+		Images:        s.extractImages(&deployment.Spec.Template.Spec),
+		Status:        s.getDeploymentStatus(deployment),
+		CreatedAt:     deployment.CreationTimestamp.Format(time.RFC3339),
+		UpdatedAt:     s.getLastUpdateTime(deployment.Status.Conditions),
 	}
 }
 
 // convertStatefulSetToWorkload 转换StatefulSet为工作负载
 func (s *K8sWorkloadServiceImpl) convertStatefulSetToWorkload(statefulSet *appsv1.StatefulSet) model.K8sWorkload {
 	return model.K8sWorkload{
-		Name:         statefulSet.Name,
-		Type:         model.WorkloadTypeStatefulSet,
-		Namespace:    statefulSet.Namespace,
-		Labels:       statefulSet.Labels,
-		Replicas:     *statefulSet.Spec.Replicas,
+		Name:          statefulSet.Name,
+		Type:          model.WorkloadTypeStatefulSet,
+		Namespace:     statefulSet.Namespace,
+		Labels:        statefulSet.Labels,
+		Replicas:      *statefulSet.Spec.Replicas,
 		ReadyReplicas: statefulSet.Status.ReadyReplicas,
-		Resources:    s.extractPodResources(&statefulSet.Spec.Template.Spec),
-		Images:       s.extractImages(&statefulSet.Spec.Template.Spec),
-		Status:       s.getStatefulSetStatus(statefulSet),
-		CreatedAt:    statefulSet.CreationTimestamp.Format(time.RFC3339),
-		UpdatedAt:    s.getStatefulSetLastUpdateTime(statefulSet.Status.Conditions),
+		Resources:     s.extractPodResources(&statefulSet.Spec.Template.Spec),
+		Images:        s.extractImages(&statefulSet.Spec.Template.Spec),
+		Status:        s.getStatefulSetStatus(statefulSet),
+		CreatedAt:     statefulSet.CreationTimestamp.Format(time.RFC3339),
+		UpdatedAt:     s.getStatefulSetLastUpdateTime(statefulSet.Status.Conditions),
 	}
 }
 
 // convertDaemonSetToWorkload 转换DaemonSet为工作负载
 func (s *K8sWorkloadServiceImpl) convertDaemonSetToWorkload(daemonSet *appsv1.DaemonSet) model.K8sWorkload {
 	return model.K8sWorkload{
-		Name:         daemonSet.Name,
-		Type:         model.WorkloadTypeDaemonSet,
-		Namespace:    daemonSet.Namespace,
-		Labels:       daemonSet.Labels,
-		Replicas:     daemonSet.Status.DesiredNumberScheduled,
+		Name:          daemonSet.Name,
+		Type:          model.WorkloadTypeDaemonSet,
+		Namespace:     daemonSet.Namespace,
+		Labels:        daemonSet.Labels,
+		Replicas:      daemonSet.Status.DesiredNumberScheduled,
 		ReadyReplicas: daemonSet.Status.NumberReady,
-		Resources:    s.extractPodResources(&daemonSet.Spec.Template.Spec),
-		Images:       s.extractImages(&daemonSet.Spec.Template.Spec),
-		Status:       s.getDaemonSetStatus(daemonSet),
-		CreatedAt:    daemonSet.CreationTimestamp.Format(time.RFC3339),
-		UpdatedAt:    s.getDaemonSetLastUpdateTime(daemonSet.Status.Conditions),
+		Resources:     s.extractPodResources(&daemonSet.Spec.Template.Spec),
+		Images:        s.extractImages(&daemonSet.Spec.Template.Spec),
+		Status:        s.getDaemonSetStatus(daemonSet),
+		CreatedAt:     daemonSet.CreationTimestamp.Format(time.RFC3339),
+		UpdatedAt:     s.getDaemonSetLastUpdateTime(daemonSet.Status.Conditions),
 	}
 }
 
@@ -500,17 +502,17 @@ func (s *K8sWorkloadServiceImpl) convertJobToWorkload(job *batchv1.Job) model.K8
 	}
 
 	return model.K8sWorkload{
-		Name:         job.Name,
-		Type:         model.WorkloadTypeJob,
-		Namespace:    job.Namespace,
-		Labels:       job.Labels,
-		Replicas:     replicas,
+		Name:          job.Name,
+		Type:          model.WorkloadTypeJob,
+		Namespace:     job.Namespace,
+		Labels:        job.Labels,
+		Replicas:      replicas,
 		ReadyReplicas: job.Status.Succeeded,
-		Resources:    s.extractPodResources(&job.Spec.Template.Spec),
-		Images:       s.extractImages(&job.Spec.Template.Spec),
-		Status:       s.getJobStatus(job),
-		CreatedAt:    job.CreationTimestamp.Format(time.RFC3339),
-		UpdatedAt:    s.getJobLastUpdateTime(job.Status.Conditions),
+		Resources:     s.extractPodResources(&job.Spec.Template.Spec),
+		Images:        s.extractImages(&job.Spec.Template.Spec),
+		Status:        s.getJobStatus(job),
+		CreatedAt:     job.CreationTimestamp.Format(time.RFC3339),
+		UpdatedAt:     s.getJobLastUpdateTime(job.Status.Conditions),
 	}
 }
 
@@ -522,17 +524,17 @@ func (s *K8sWorkloadServiceImpl) convertCronJobToWorkload(cronJob *batchv1beta1.
 	}
 
 	return model.K8sWorkload{
-		Name:         cronJob.Name,
-		Type:         model.WorkloadTypeCronJob,
-		Namespace:    cronJob.Namespace,
-		Labels:       cronJob.Labels,
-		Replicas:     replicas,
+		Name:          cronJob.Name,
+		Type:          model.WorkloadTypeCronJob,
+		Namespace:     cronJob.Namespace,
+		Labels:        cronJob.Labels,
+		Replicas:      replicas,
 		ReadyReplicas: 0, // CronJob没有常驻副本
-		Resources:    s.extractPodResources(&cronJob.Spec.JobTemplate.Spec.Template.Spec),
-		Images:       s.extractImages(&cronJob.Spec.JobTemplate.Spec.Template.Spec),
-		Status:       s.getCronJobStatus(cronJob),
-		CreatedAt:    cronJob.CreationTimestamp.Format(time.RFC3339),
-		UpdatedAt:    s.getCronJobLastUpdateTime(cronJob),
+		Resources:     s.extractPodResources(&cronJob.Spec.JobTemplate.Spec.Template.Spec),
+		Images:        s.extractImages(&cronJob.Spec.JobTemplate.Spec.Template.Spec),
+		Status:        s.getCronJobStatus(cronJob),
+		CreatedAt:     cronJob.CreationTimestamp.Format(time.RFC3339),
+		UpdatedAt:     s.getCronJobLastUpdateTime(cronJob),
 	}
 }
 
@@ -584,14 +586,14 @@ func (s *K8sWorkloadServiceImpl) addResourceQuantity(current, add string) string
 	if add == "" {
 		return current
 	}
-	
+
 	// 简化处理，实际应该解析并相加资源量
 	currentQ, err1 := resource.ParseQuantity(current)
 	addQ, err2 := resource.ParseQuantity(add)
 	if err1 != nil || err2 != nil {
 		return add // 解析失败时返回新值
 	}
-	
+
 	currentQ.Add(addQ)
 	return currentQ.String()
 }
@@ -668,14 +670,14 @@ func (s *K8sWorkloadServiceImpl) getLastUpdateTime(conditions []appsv1.Deploymen
 	if len(conditions) == 0 {
 		return ""
 	}
-	
+
 	var latestTime metav1.Time
 	for _, condition := range conditions {
 		if condition.LastUpdateTime.After(latestTime.Time) {
 			latestTime = condition.LastUpdateTime
 		}
 	}
-	
+
 	return latestTime.Format(time.RFC3339)
 }
 
@@ -684,14 +686,14 @@ func (s *K8sWorkloadServiceImpl) getJobLastUpdateTime(conditions []batchv1.JobCo
 	if len(conditions) == 0 {
 		return ""
 	}
-	
+
 	var latestTime metav1.Time
 	for _, condition := range conditions {
 		if condition.LastTransitionTime.After(latestTime.Time) {
 			latestTime = condition.LastTransitionTime
 		}
 	}
-	
+
 	return latestTime.Format(time.RFC3339)
 }
 
@@ -700,14 +702,14 @@ func (s *K8sWorkloadServiceImpl) getStatefulSetLastUpdateTime(conditions []appsv
 	if len(conditions) == 0 {
 		return ""
 	}
-	
+
 	var latestTime metav1.Time
 	for _, condition := range conditions {
 		if condition.LastTransitionTime.After(latestTime.Time) {
 			latestTime = condition.LastTransitionTime
 		}
 	}
-	
+
 	return latestTime.Format(time.RFC3339)
 }
 
@@ -716,14 +718,14 @@ func (s *K8sWorkloadServiceImpl) getDaemonSetLastUpdateTime(conditions []appsv1.
 	if len(conditions) == 0 {
 		return ""
 	}
-	
+
 	var latestTime metav1.Time
 	for _, condition := range conditions {
 		if condition.LastTransitionTime.After(latestTime.Time) {
 			latestTime = condition.LastTransitionTime
 		}
 	}
-	
+
 	return latestTime.Format(time.RFC3339)
 }
 
@@ -757,13 +759,13 @@ func (s *K8sWorkloadServiceImpl) getDeploymentDetail(clientset *kubernetes.Clien
 	}
 
 	workload := s.convertDeploymentToWorkload(deployment)
-	
+
 	return &model.K8sWorkloadDetail{
 		K8sWorkload: workload,
-		Pods:       pods,
-		Conditions: s.convertDeploymentConditions(deployment.Status.Conditions),
-		Events:     events,
-		Spec:       deployment.Spec,
+		Pods:        pods,
+		Conditions:  s.convertDeploymentConditions(deployment.Status.Conditions),
+		Events:      events,
+		Spec:        deployment.Spec,
 	}, nil
 }
 
@@ -785,13 +787,13 @@ func (s *K8sWorkloadServiceImpl) getStatefulSetDetail(clientset *kubernetes.Clie
 	}
 
 	workload := s.convertStatefulSetToWorkload(statefulSet)
-	
+
 	return &model.K8sWorkloadDetail{
 		K8sWorkload: workload,
-		Pods:       pods,
-		Conditions: s.convertStatefulSetConditions(statefulSet.Status.Conditions),
-		Events:     events,
-		Spec:       statefulSet.Spec,
+		Pods:        pods,
+		Conditions:  s.convertStatefulSetConditions(statefulSet.Status.Conditions),
+		Events:      events,
+		Spec:        statefulSet.Spec,
 	}, nil
 }
 
@@ -813,13 +815,13 @@ func (s *K8sWorkloadServiceImpl) getDaemonSetDetail(clientset *kubernetes.Client
 	}
 
 	workload := s.convertDaemonSetToWorkload(daemonSet)
-	
+
 	return &model.K8sWorkloadDetail{
 		K8sWorkload: workload,
-		Pods:       pods,
-		Conditions: s.convertDaemonSetConditions(daemonSet.Status.Conditions),
-		Events:     events,
-		Spec:       daemonSet.Spec,
+		Pods:        pods,
+		Conditions:  s.convertDaemonSetConditions(daemonSet.Status.Conditions),
+		Events:      events,
+		Spec:        daemonSet.Spec,
 	}, nil
 }
 
@@ -841,13 +843,13 @@ func (s *K8sWorkloadServiceImpl) getJobDetail(clientset *kubernetes.Clientset, n
 	}
 
 	workload := s.convertJobToWorkload(job)
-	
+
 	return &model.K8sWorkloadDetail{
 		K8sWorkload: workload,
-		Pods:       pods,
-		Conditions: s.convertJobConditions(job.Status.Conditions),
-		Events:     events,
-		Spec:       job.Spec,
+		Pods:        pods,
+		Conditions:  s.convertJobConditions(job.Status.Conditions),
+		Events:      events,
+		Spec:        job.Spec,
 	}, nil
 }
 
@@ -860,20 +862,20 @@ func (s *K8sWorkloadServiceImpl) getCronJobDetail(clientset *kubernetes.Clientse
 
 	// CronJob的Pod是通过其创建的Job获取的
 	pods := []model.K8sPodInfo{}
-	
+
 	events, err := s.getWorkloadEvents(clientset, namespaceName, "CronJob", cronJobName)
 	if err != nil {
 		events = []model.K8sEvent{}
 	}
 
 	workload := s.convertCronJobToWorkload(cronJob)
-	
+
 	return &model.K8sWorkloadDetail{
 		K8sWorkload: workload,
-		Pods:       pods,
-		Conditions: []model.WorkloadCondition{}, // CronJob没有标准的Conditions
-		Events:     events,
-		Spec:       cronJob.Spec,
+		Pods:        pods,
+		Conditions:  []model.WorkloadCondition{}, // CronJob没有标准的Conditions
+		Events:      events,
+		Spec:        cronJob.Spec,
 	}, nil
 }
 
@@ -984,28 +986,42 @@ func (s *K8sWorkloadServiceImpl) DeletePod(c *gin.Context, clusterId uint, names
 	result.Success(c, "Pod删除成功")
 }
 
+var logUpgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // 允许跨域，可根据实际需求调整
+	},
+}
+
 // GetPodLogs 获取Pod日志
-func (s *K8sWorkloadServiceImpl) GetPodLogs(c *gin.Context, clusterId uint, namespaceName, podName, containerName string) {
+func (s *K8sWorkloadServiceImpl) GetPodLogs(c *gin.Context, clusterId uint, namespaceName, podName, containerName string, follow bool) {
+	// 升级HTTP请求为WebSocket连接
+	ws, err := logUpgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		fmt.Printf("WebSocket升级失败: %v\n", err)
+		return
+	}
+	defer ws.Close()
+
 	cluster, err := s.clusterDao.GetByID(clusterId)
 	if err != nil {
+		errMsg := "获取集群信息失败: " + err.Error()
 		if err == gorm.ErrRecordNotFound {
-			result.Failed(c, http.StatusNotFound, "集群不存在")
-			return
+			errMsg = "集群不存在"
 		}
-		result.Failed(c, http.StatusInternalServerError, "获取集群信息失败: "+err.Error())
+		_ = ws.WriteMessage(websocket.TextMessage, []byte(errMsg))
 		return
 	}
 
 	clientset, err := s.createK8sClient(cluster.Credential)
 	if err != nil {
-		result.Failed(c, http.StatusInternalServerError, "连接K8s集群失败: "+err.Error())
+		_ = ws.WriteMessage(websocket.TextMessage, []byte("连接K8s集群失败: "+err.Error()))
 		return
 	}
 
 	// 构建日志请求选项
 	logOptions := &corev1.PodLogOptions{
 		Container: containerName,
-		Follow:    false,
+		Follow:    follow,                                                 // 开启流式跟随
 		TailLines: func() *int64 { lines := int64(500); return &lines }(), // 默认最后500行
 	}
 
@@ -1013,28 +1029,26 @@ func (s *K8sWorkloadServiceImpl) GetPodLogs(c *gin.Context, clusterId uint, name
 	req := clientset.CoreV1().Pods(namespaceName).GetLogs(podName, logOptions)
 	podLogs, err := req.Stream(context.TODO())
 	if err != nil {
-		result.Failed(c, http.StatusInternalServerError, "获取Pod日志失败: "+err.Error())
+		_ = ws.WriteMessage(websocket.TextMessage, []byte("获取Pod日志失败: "+err.Error()))
 		return
 	}
 	defer podLogs.Close()
 
-	// 读取日志内容
-	buf := make([]byte, 2048)
-	var logs strings.Builder
-	for {
-		numBytes, err := podLogs.Read(buf)
-		if numBytes == 0 {
+	// 读取日志内容并通过WebSocket下发，避免因为字节截断导致包含中文字符的报文变成非法的UTF-8序列
+	scanner := bufio.NewScanner(podLogs)
+	scanner.Buffer(make([]byte, 4096), 1024*1024) // 提高单行最大容量限制至1MB，避免单行日志过长产生Error
+
+	for scanner.Scan() {
+		// Scanner按行读，自带完整的UTF-8帧序列处理（补上换行符返回给终端页面）
+		errWs := ws.WriteMessage(websocket.TextMessage, []byte(scanner.Text()+"\n"))
+		if errWs != nil {
+			// 客户端断开连接或其他写入错误
 			break
 		}
-		if err != nil {
-			break
-		}
-		logs.Write(buf[:numBytes])
 	}
 
-	result.Success(c, map[string]interface{}{
-		"logs": logs.String(),
-	})
+	// 主动发送正常的关闭握手帧，避免出现 1006 Abnormal Closure 截断警告
+	_ = ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "日志读取完毕"))
 }
 
 // GetPodEvents 获取Pod事件
@@ -1339,11 +1353,11 @@ func (s *K8sWorkloadServiceImpl) convertToPodInfo(pod *corev1.Pod) model.K8sPodI
 	var containers []model.ContainerInfo
 	for i, container := range pod.Spec.Containers {
 		containerInfo := model.ContainerInfo{
-			Name:         container.Name,
-			Image:        container.Image,
-			Resources:    s.convertContainerResources(container.Resources),
-			Ports:        s.convertContainerPorts(container.Ports),
-			Env:          s.convertEnvVars(container.Env),
+			Name:      container.Name,
+			Image:     container.Image,
+			Resources: s.convertContainerResources(container.Resources),
+			Ports:     s.convertContainerPorts(container.Ports),
+			Env:       s.convertEnvVars(container.Env),
 		}
 
 		// 如果有容器状态信息，添加状态相关信息
@@ -1555,13 +1569,13 @@ func (s *K8sWorkloadServiceImpl) convertPodConditions(conditions []corev1.PodCon
 // convertPodVolumes 转换Pod存储卷信息
 func (s *K8sWorkloadServiceImpl) convertPodVolumes(pod *corev1.Pod) []model.VolumeInfo {
 	var volumes []model.VolumeInfo
-	
+
 	for _, volume := range pod.Spec.Volumes {
 		volumeInfo := model.VolumeInfo{
 			Name: volume.Name,
 			Type: s.getVolumeType(volume.VolumeSource),
 		}
-		
+
 		// 找到对应的挂载信息
 		for _, container := range pod.Spec.Containers {
 			for _, mount := range container.VolumeMounts {
@@ -1572,10 +1586,10 @@ func (s *K8sWorkloadServiceImpl) convertPodVolumes(pod *corev1.Pod) []model.Volu
 				}
 			}
 		}
-		
+
 		volumes = append(volumes, volumeInfo)
 	}
-	
+
 	return volumes
 }
 
@@ -2216,7 +2230,7 @@ func (s *K8sWorkloadServiceImpl) GetPodMetrics(c *gin.Context, clusterId uint, n
 
 	// 转换为响应结构
 	podMetricsInfo := s.convertToPodMetricsInfo(pod, podMetrics)
-	
+
 	result.Success(c, podMetricsInfo)
 }
 
@@ -2271,7 +2285,7 @@ func (s *K8sWorkloadServiceImpl) GetNodeMetrics(c *gin.Context, clusterId uint, 
 
 	// 转换为响应结构
 	nodeMetricsInfo := s.convertToNodeMetricsInfo(node, nodeMetrics, podMetricsList, clientset)
-	
+
 	result.Success(c, nodeMetricsInfo)
 }
 
@@ -2325,7 +2339,7 @@ func (s *K8sWorkloadServiceImpl) GetNamespaceMetrics(c *gin.Context, clusterId u
 
 	// 转换为响应结构
 	namespaceMetricsInfo := s.convertToNamespaceMetricsInfo(namespace, podMetricsList, podList, clientset)
-	
+
 	result.Success(c, namespaceMetricsInfo)
 }
 
@@ -2336,20 +2350,20 @@ func (s *K8sWorkloadServiceImpl) convertToPodMetricsInfo(pod *corev1.Pod, podMet
 	// 计算总使用量
 	var totalCPU, totalMemory resource.Quantity
 	var containerMetrics []model.ContainerMetricsInfo
-	
+
 	// 遍历容器metrics
 	for _, containerMetric := range podMetrics.Containers {
 		cpuUsage := containerMetric.Usage[corev1.ResourceCPU]
 		memoryUsage := containerMetric.Usage[corev1.ResourceMemory]
-		
+
 		totalCPU.Add(cpuUsage)
 		totalMemory.Add(memoryUsage)
-		
+
 		// 获取对应的容器配置信息
 		var containerRequests, containerLimits model.ResourceUsage
 		var containerState string
 		var restartCount int32
-		
+
 		// 从Pod规格中找到匹配的容器
 		for _, container := range pod.Spec.Containers {
 			if container.Name == containerMetric.Name {
@@ -2362,7 +2376,7 @@ func (s *K8sWorkloadServiceImpl) convertToPodMetricsInfo(pod *corev1.Pod, podMet
 						containerRequests.Memory = memory.String()
 					}
 				}
-				
+
 				if container.Resources.Limits != nil {
 					if cpu, ok := container.Resources.Limits[corev1.ResourceCPU]; ok {
 						containerLimits.CPU = cpu.String()
@@ -2374,7 +2388,7 @@ func (s *K8sWorkloadServiceImpl) convertToPodMetricsInfo(pod *corev1.Pod, podMet
 				break
 			}
 		}
-		
+
 		// 从Pod状态中获取容器状态和重启次数
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.Name == containerMetric.Name {
@@ -2383,7 +2397,7 @@ func (s *K8sWorkloadServiceImpl) convertToPodMetricsInfo(pod *corev1.Pod, podMet
 				break
 			}
 		}
-		
+
 		// 计算使用率
 		var cpuRate, memoryRate float64
 		if containerRequests.CPU != "" {
@@ -2400,7 +2414,7 @@ func (s *K8sWorkloadServiceImpl) convertToPodMetricsInfo(pod *corev1.Pod, podMet
 				}
 			}
 		}
-		
+
 		containerMetrics = append(containerMetrics, model.ContainerMetricsInfo{
 			Name: containerMetric.Name,
 			Usage: model.ResourceUsage{
@@ -2417,11 +2431,11 @@ func (s *K8sWorkloadServiceImpl) convertToPodMetricsInfo(pod *corev1.Pod, podMet
 			RestartCount: restartCount,
 		})
 	}
-	
+
 	// 计算Pod级别的资源配额和使用率
 	podRequests := s.extractPodResources(&pod.Spec)
 	var podCPURate, podMemoryRate float64
-	
+
 	if podRequests.Requests.CPU != "" {
 		if requestCPU, err := resource.ParseQuantity(podRequests.Requests.CPU); err == nil {
 			if requestCPU.MilliValue() > 0 {
@@ -2436,12 +2450,12 @@ func (s *K8sWorkloadServiceImpl) convertToPodMetricsInfo(pod *corev1.Pod, podMet
 			}
 		}
 	}
-	
+
 	return model.PodMetricsInfo{
-		PodName:   pod.Name,
-		Namespace: pod.Namespace,
-		NodeName:  pod.Spec.NodeName,
-		Timestamp: podMetrics.Timestamp.Format(time.RFC3339),
+		PodName:    pod.Name,
+		Namespace:  pod.Namespace,
+		NodeName:   pod.Spec.NodeName,
+		Timestamp:  podMetrics.Timestamp.Format(time.RFC3339),
 		Containers: containerMetrics,
 		TotalUsage: model.ResourceUsage{
 			CPU:    totalCPU.String(),
@@ -2474,7 +2488,7 @@ func (s *K8sWorkloadServiceImpl) convertToNodeMetricsInfo(node *corev1.Node, nod
 	if memory, ok := node.Status.Capacity[corev1.ResourceMemory]; ok {
 		capacityMemory = memory.String()
 	}
-	
+
 	var allocatableCPU, allocatableMemory string
 	if cpu, ok := node.Status.Allocatable[corev1.ResourceCPU]; ok {
 		allocatableCPU = cpu.String()
@@ -2482,7 +2496,7 @@ func (s *K8sWorkloadServiceImpl) convertToNodeMetricsInfo(node *corev1.Node, nod
 	if memory, ok := node.Status.Allocatable[corev1.ResourceMemory]; ok {
 		allocatableMemory = memory.String()
 	}
-	
+
 	var usageCPU, usageMemory string
 	if cpu, ok := nodeMetrics.Usage[corev1.ResourceCPU]; ok {
 		usageCPU = cpu.String()
@@ -2490,22 +2504,22 @@ func (s *K8sWorkloadServiceImpl) convertToNodeMetricsInfo(node *corev1.Node, nod
 	if memory, ok := nodeMetrics.Usage[corev1.ResourceMemory]; ok {
 		usageMemory = memory.String()
 	}
-	
+
 	capacity := model.ResourceUsage{
 		CPU:    capacityCPU,
 		Memory: capacityMemory,
 	}
-	
+
 	allocatable := model.ResourceUsage{
 		CPU:    allocatableCPU,
 		Memory: allocatableMemory,
 	}
-	
+
 	usage := model.ResourceUsage{
 		CPU:    usageCPU,
 		Memory: usageMemory,
 	}
-	
+
 	// 计算使用率
 	var cpuRate, memoryRate float64
 	if allocatableCPU, err := resource.ParseQuantity(allocatable.CPU); err == nil {
@@ -2522,7 +2536,7 @@ func (s *K8sWorkloadServiceImpl) convertToNodeMetricsInfo(node *corev1.Node, nod
 			}
 		}
 	}
-	
+
 	// 转换Pod监控摘要
 	var podMetricsSummary []model.PodMetricsSummary
 	for _, podMetric := range podMetricsList.Items {
@@ -2531,7 +2545,7 @@ func (s *K8sWorkloadServiceImpl) convertToNodeMetricsInfo(node *corev1.Node, nod
 			totalCPU.Add(containerMetric.Usage[corev1.ResourceCPU])
 			totalMemory.Add(containerMetric.Usage[corev1.ResourceMemory])
 		}
-		
+
 		podMetricsSummary = append(podMetricsSummary, model.PodMetricsSummary{
 			PodName:   podMetric.Name,
 			Namespace: podMetric.Namespace,
@@ -2545,12 +2559,12 @@ func (s *K8sWorkloadServiceImpl) convertToNodeMetricsInfo(node *corev1.Node, nod
 			},
 		})
 	}
-	
+
 	return model.NodeMetricsInfo{
-		NodeName:  node.Name,
-		Timestamp: nodeMetrics.Timestamp.Format(time.RFC3339),
-		Usage:     usage,
-		Capacity:  capacity,
+		NodeName:    node.Name,
+		Timestamp:   nodeMetrics.Timestamp.Format(time.RFC3339),
+		Usage:       usage,
+		Capacity:    capacity,
 		Allocatable: allocatable,
 		UsageRate: model.ResourceUsageRate{
 			CPURate:    cpuRate,
@@ -2575,17 +2589,17 @@ func (s *K8sWorkloadServiceImpl) convertToNamespaceMetricsInfo(namespace *corev1
 	var totalCPU, totalMemory resource.Quantity
 	var podMetricsSummary []model.PodMetricsSummary
 	var runningPods int
-	
+
 	for _, podMetric := range podMetricsList.Items {
 		var podCPU, podMemory resource.Quantity
 		for _, containerMetric := range podMetric.Containers {
 			podCPU.Add(containerMetric.Usage[corev1.ResourceCPU])
 			podMemory.Add(containerMetric.Usage[corev1.ResourceMemory])
 		}
-		
+
 		totalCPU.Add(podCPU)
 		totalMemory.Add(podMemory)
-		
+
 		podMetricsSummary = append(podMetricsSummary, model.PodMetricsSummary{
 			PodName:   podMetric.Name,
 			Namespace: podMetric.Namespace,
@@ -2599,14 +2613,14 @@ func (s *K8sWorkloadServiceImpl) convertToNamespaceMetricsInfo(namespace *corev1
 			},
 		})
 	}
-	
+
 	// 统计运行中的Pod数量
 	for _, pod := range podList.Items {
 		if pod.Status.Phase == corev1.PodRunning {
 			runningPods++
 		}
 	}
-	
+
 	// 尝试获取ResourceQuota（如果存在）
 	var resourceQuota model.NamespaceResourceQuota
 	if quotaList, err := clientset.CoreV1().ResourceQuotas(namespace.Name).List(context.TODO(), metav1.ListOptions{}); err == nil && len(quotaList.Items) > 0 {
@@ -2625,7 +2639,7 @@ func (s *K8sWorkloadServiceImpl) convertToNamespaceMetricsInfo(namespace *corev1
 			resourceQuota.Used.Memory = usedMemory.String()
 		}
 	}
-	
+
 	// 计算使用率
 	var cpuRate, memoryRate float64
 	if resourceQuota.Hard.CPU != "" && resourceQuota.Used.CPU != "" {
@@ -2646,11 +2660,11 @@ func (s *K8sWorkloadServiceImpl) convertToNamespaceMetricsInfo(namespace *corev1
 			}
 		}
 	}
-	
+
 	return model.NamespaceMetricsInfo{
-		Namespace: namespace.Name,
-		Timestamp: time.Now().Format(time.RFC3339),
-		PodCount:  len(podList.Items),
+		Namespace:   namespace.Name,
+		Timestamp:   time.Now().Format(time.RFC3339),
+		PodCount:    len(podList.Items),
 		RunningPods: runningPods,
 		TotalUsage: model.ResourceUsage{
 			CPU:    totalCPU.String(),
@@ -2917,8 +2931,8 @@ func (s *K8sWorkloadServiceImpl) CreatePodFromYAML(c *gin.Context, clusterId uin
 		PodName:   resourceName, // 这里沿用原来的字段名，但实际上是资源名称
 		Namespace: namespaceName,
 		ParsedObject: map[string]interface{}{
-			"kind": resourceKind,
-			"name": resourceName,
+			"kind":      resourceKind,
+			"name":      resourceName,
 			"namespace": namespaceName,
 		},
 	}

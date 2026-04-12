@@ -12,17 +12,24 @@ import {
   Key,
   Search,
   Files,
-  Lock
+  Lock,
+  Hide
 } from '@element-plus/icons-vue'
 import k8sApi from '@/api/k8s'
 import PodYamlDialog from './pods/PodYamlDialog.vue'
 import ClusterSelector from './pods/ClusterSelector.vue'
 import NamespaceSelector from './pods/NamespaceSelector.vue'
+import yaml from 'js-yaml'
 
 // 基础状态
 const loading = ref(false)
 const activeTab = ref('configmap')
 const searchKeyword = ref('')
+const visibleSecretKeys = ref({})
+
+const toggleSecretVisibility = (key) => {
+  visibleSecretKeys.value[key] = !visibleSecretKeys.value[key]
+}
 
 // 集群和命名空间状态
 const selectedClusterId = ref('')
@@ -373,6 +380,7 @@ const handleViewSecret = async (row) => {
 
     if (responseData.code === 200 || responseData.success) {
       currentSecretForDetail.value = responseData.data || row
+      visibleSecretKeys.value = {}
       secretDetailDialogVisible.value = true
     } else {
       ElMessage.error(responseData.message || '获取 Secret 详情失败')
@@ -401,6 +409,39 @@ const handleEditSecretYaml = async (row) => {
         yamlContent = JSON.stringify(yamlContent, null, 2)
       } else if (yamlContent === null || yamlContent === undefined) {
         yamlContent = `# Secret ${row?.name} YAML\napiVersion: v1\nkind: Secret\nmetadata:\n  name: ${row?.name}\n  namespace: ${queryParams.namespace}\ntype: Opaque`
+      }
+
+      if (typeof yamlContent === 'string') {
+        try {
+          const doc = yaml.load(yamlContent)
+          if (doc && doc.metadata && doc.metadata.annotations) {
+            delete doc.metadata.annotations['kubectl.kubernetes.io/last-applied-configuration']
+            if (Object.keys(doc.metadata.annotations).length === 0) {
+              delete doc.metadata.annotations
+            }
+          }
+          if (doc && doc.data && typeof doc.data === 'object') {
+            doc.stringData = doc.stringData || {}
+            for (const key in doc.data) {
+              const val = doc.data[key]
+              if (val) {
+                try {
+                  doc.stringData[key] = decodeURIComponent(escape(atob(val)))
+                } catch(e) {
+                  try {
+                    doc.stringData[key] = atob(val)
+                  } catch(e2) {
+                    doc.stringData[key] = val
+                  }
+                }
+              }
+            }
+            delete doc.data
+            yamlContent = yaml.dump(doc)
+          }
+        } catch(e) {
+          console.warn('解析 Secret YAML 失败', e)
+        }
       }
 
       currentSecretYaml.value = String(yamlContent)
@@ -479,6 +520,19 @@ const handleDeleteSecret = async (row) => {
 }
 
 // 工具函数
+const decodeBase64 = (str) => {
+  if (!str) return ''
+  try {
+    return decodeURIComponent(escape(atob(str)))
+  } catch (e) {
+    try {
+      return atob(str)
+    } catch {
+      return str
+    }
+  }
+}
+
 const getSecretTypeTag = (type) => {
   const typeMap = {
     'Opaque': 'primary',
@@ -868,7 +922,7 @@ onMounted(async () => {
         <div v-if="currentSecretForDetail.data" class="data-section">
           <h4 class="section-title">
             <el-icon class="secret-icon"><Lock /></el-icon>
-            敏感数据 (已脱敏)
+            敏感数据
           </h4>
           <div class="data-list">
             <div
@@ -876,10 +930,16 @@ onMounted(async () => {
               :key="key"
               class="data-item secret-item"
             >
-              <div class="data-key">{{ key }}</div>
-              <div class="data-value secret-value">
+              <div class="data-key-header" @click="toggleSecretVisibility(key)" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <div class="data-key" style="margin-bottom: 0;">{{ key }}</div>
+                <el-button type="primary" link @click.stop="toggleSecretVisibility(key)">
+                  <el-icon style="margin-right: 4px;"><component :is="visibleSecretKeys[key] ? 'Hide' : 'View'" /></el-icon>
+                  {{ visibleSecretKeys[key] ? '隐藏内容' : '查看内容' }}
+                </el-button>
+              </div>
+              <div v-if="visibleSecretKeys[key]" class="data-value secret-value" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ffd591;">
                 <el-icon><Lock /></el-icon>
-                *** ({{ String(value).length }} 字符)
+                {{ decodeBase64(value) }}
               </div>
             </div>
           </div>

@@ -23,6 +23,7 @@
   <!-- 日志查看对话框 -->
   <LogViewerDialog
     v-model="dialogs.logs.visible"
+    :cluster-id="clusterId"
     :pod-name="dialogs.logs.data?.podName || ''"
     :namespace="dialogs.logs.data?.namespace || ''"
     :containers="dialogs.logs.data?.containers || []"

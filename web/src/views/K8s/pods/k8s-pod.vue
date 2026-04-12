@@ -19,6 +19,7 @@ import {
 } from '@element-plus/icons-vue'
 import k8sApi from '@/api/k8s'
 import CodeEditor from '@/components/CodeEditor.vue'
+import LogViewerDialog from './LogViewerDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -1260,26 +1261,19 @@ const getHistoryVersions = async () => {
   }
 }
 
-// 获取容器日志 - 切换到日志标签页
+// 打开容器日志对话框
 const handleViewLogs = async (pod) => {
-  console.log('🔄 点击日志按钮，切换到日志标签页')
-  console.log('🔍 传入的pod参数:', pod)
-  console.log('🔍 当前allRelatedPods数量:', allRelatedPods.value.length)
-  
-  // 确保有可用的Pod数据
   if (allRelatedPods.value.length === 0) {
-    console.log('⚠️  allRelatedPods为空，尝试重新获取相关Pod')
     await getRelatedPods()
   }
   
-  // 如果传入了具体的pod参数，优先使用它
   if (pod && pod.name) {
-    selectedContainerForLogs.value = pod.name
-    console.log('🔄 选择传入的Pod用于日志:', selectedContainerForLogs.value)
+    selectedContainer.value = pod
+  } else if (allRelatedPods.value.length > 0) {
+    selectedContainer.value = allRelatedPods.value[0]
   }
   
-  // 切换到日志标签页 - watch监听器会自动处理加载日志
-  activeTab.value = 'logs'
+  dialogStates.logsVisible = true
 }
 
 // 处理容器选择变化
@@ -2504,104 +2498,6 @@ const handleGoBack = () => {
             </div>
           </el-tab-pane>
 
-          <!-- 日志标签页 -->
-          <el-tab-pane label="日志" name="logs">
-            <div class="logs-tab-content">
-              <div class="logs-controls">
-                <el-row :gutter="12" style="margin-bottom: 16px;">
-                  <el-col :span="6">
-                    <el-select v-model="selectedContainerForLogs" placeholder="选择Pod" style="width: 100%;" @change="handleContainerChange">
-                      <el-option 
-                        v-for="pod in allRelatedPods" 
-                        :key="pod.name"
-                        :label="pod.name" 
-                        :value="pod.name"
-                      />
-                    </el-select>
-                  </el-col>
-                  <el-col :span="4">
-                    <el-select v-model="logTailLines" placeholder="行数" style="width: 100%;">
-                      <el-option label="最近100行" :value="100" />
-                      <el-option label="最近300行" :value="300" />
-                      <el-option label="最近500行" :value="500" />
-                      <el-option label="最近1000行" :value="1000" />
-                    </el-select>
-                  </el-col>
-                  <el-col :span="6">
-                    <div style="display: flex; align-items: center; gap: 12px; white-space: nowrap;">
-                      <el-checkbox v-model="followLogs">实时跟踪</el-checkbox>
-                      <el-checkbox v-model="showPreviousLogs">上个容器退出日志</el-checkbox>
-                    </div>
-                  </el-col>
-                  <el-col :span="8">
-                    <div class="logs-actions" style="justify-content: flex-end;">
-                      <!-- 日志搜索工具 -->
-                      <el-input
-                        v-model="logsSearchText"
-                        placeholder="搜索日志..."
-                        :prefix-icon="Search"
-                        clearable
-                        @keyup.enter="searchLogsContent"
-                        @clear="clearLogsSearch"
-                        size="small"
-                        style="width: 200px; margin-right: 8px;"
-                      />
-                      <el-button-group size="small" style="margin-right: 8px;">
-                        <el-button type="warning" :icon="Search" @click="searchLogsContent">搜索</el-button>
-                        <el-button type="success" :icon="ArrowUp" @click="goToPreviousLogsSearchResult" :disabled="logsSearchResults.length === 0"></el-button>
-                        <el-button type="primary" :icon="ArrowDown" @click="goToNextLogsSearchResult" :disabled="logsSearchResults.length === 0"></el-button>
-                      </el-button-group>
-                      <el-text v-if="logsSearchResults.length > 0" type="info" size="small" style="margin-right: 12px;">
-                        {{ logsSearchCurrentIndex + 1 }} / {{ logsSearchResults.length }}
-                      </el-text>
-                      <el-button size="small" type="primary" :icon="Refresh" @click="handleRefreshLogs" :loading="logsLoading">刷新</el-button>
-                      <el-button size="small" type="success" :icon="Document" @click="handleDownloadLogs">下载</el-button>
-                    </div>
-                  </el-col>
-                </el-row>
-              </div>
-              
-              <div class="logs-display" v-loading="logsLoading">
-                <div v-if="!selectedContainerForLogs" class="logs-placeholder">
-                  <el-empty description="请选择Pod查看日志">
-                    <div style="margin-top: 16px;">
-                      <el-text type="info">选择上方Pod列表中的Pod开始查看日志</el-text>
-                    </div>
-                  </el-empty>
-                </div>
-                <div v-else-if="currentLogs" class="logs-content-display">
-                  <div class="logs-header">
-                    <span class="container-name">{{ selectedContainerForLogs }}</span> 
-                    <span class="logs-info">
-                      最近 {{ logTailLines || 1000 }} 行 
-                      • {{ formatTime(lastLogRefreshTime) }}
-                    </span>
-                  </div>
-                  
-                  <div class="logs-editor-container">
-                    <CodeEditor 
-                      v-model="currentLogs" 
-                      :language="null" 
-                      height="600px"
-                      fontSize="12px"
-                      :readonly="true"
-                      :searchText="logsSearchText"
-                      :searchResults="logsSearchResults"
-                      :currentSearchIndex="logsSearchCurrentIndex"
-                    />
-                  </div>
-                </div>
-                <div v-else class="logs-empty">
-                  <el-empty description="该Pod暂无日志数据">
-                    <div style="margin-top: 16px;">
-                      <el-button type="primary" @click="handleRefreshLogs">重新获取</el-button>
-                    </div>
-                  </el-empty>
-                </div>
-              </div>
-            </div>
-          </el-tab-pane>
-
           <!-- 容器伸缩标签页 -->
           <el-tab-pane label="容器伸缩" name="scale">
             <div style="padding: 20px;">
@@ -2629,20 +2525,14 @@ const handleGoBack = () => {
     </el-card>
 
     <!-- 日志查看对话框 -->
-    <el-dialog
+    <LogViewerDialog
       v-model="dialogStates.logsVisible"
-      :title="`容器日志 - ${selectedContainer?.name || ''}`"
-      width="80%"
-      class="logs-dialog"
-    >
-      <div class="logs-container">
-        <pre class="logs-content">{{ logs }}</pre>
-      </div>
-      <template #footer>
-        <el-button @click="copyToClipboard(logs, '日志已复制')">复制日志</el-button>
-        <el-button type="primary" @click="handleRefreshLogs">刷新日志</el-button>
-      </template>
-    </el-dialog>
+      :cluster-id="routeParams.clusterId"
+      :namespace="routeParams.namespace"
+      :pod-name="selectedContainer?.name"
+      :containers="selectedContainer?.containers || []"
+      @close="dialogStates.logsVisible = false"
+    />
 
     <!-- YAML查看/编辑对话框 -->
     <el-dialog

@@ -14,6 +14,15 @@
           </div>
           <div class="terminal-controls">
             <el-select
+              v-model="selectedCommand"
+              placeholder="选择命令"
+              size="small"
+              style="width: 120px; margin-right: 10px;"
+            >
+              <el-option label="/bin/bash" value="/bin/bash" />
+              <el-option label="/bin/sh" value="/bin/sh" />
+            </el-select>
+            <el-select
               v-model="selectedContainer"
               placeholder="选择容器"
               size="small"
@@ -44,10 +53,27 @@
             >
               断开
             </el-button>
+            <el-button
+              type="success"
+              size="small"
+              style="margin-left: 10px"
+              @click="fileManagerVisible = true"
+              :disabled="!selectedContainer"
+            >
+              文件管理
+            </el-button>
+            <el-button
+              type="info"
+              size="small"
+              style="margin-left: 10px"
+              @click="goBack"
+            >
+              返回
+            </el-button>
           </div>
         </div>
       </template>
-      
+
       <div class="terminal-content">
         <div ref="terminalElement" class="xterm-container" @click="focusTerminal"></div>
         <div v-if="!isConnected" class="terminal-placeholder">
@@ -64,6 +90,22 @@
         </div>
       </div>
     </el-card>
+
+    <!-- 文件管理弹窗 -->
+    <el-dialog
+      v-model="fileManagerVisible"
+      :title="`文件管理 - ${selectedContainer}`"
+      width="850px"
+      destroy-on-close
+      class="file-manager-dialog"
+    >
+      <pod-file-manager
+        :cluster-id="clusterId"
+        :namespace="namespace"
+        :pod-name="podName"
+        :container-name="selectedContainer"
+      />
+    </el-dialog>
   </div>
 </template>
 
@@ -71,12 +113,13 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Monitor } from '@element-plus/icons-vue'
+import { Monitor, Folder } from '@element-plus/icons-vue'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import k8sApi from '@/api/k8s'
 import storage from '@/utils/storage'
+import PodFileManager from './PodFileManager.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -87,7 +130,10 @@ const namespace = computed(() => route.params.namespace)
 const podName = computed(() => route.params.podName)
 const containerFromQuery = computed(() => route.query.container)
 
-// 终端状态
+// 状态控制
+const activeTab = ref('terminal')
+const selectedCommand = ref('/bin/bash')
+const fileManagerVisible = ref(false)
 const connecting = ref(false)
 const isConnected = ref(false)
 const selectedContainer = ref('')
@@ -265,9 +311,16 @@ const connect = async () => {
       return
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    // 使用当前页面的host，支持Docker部署
-    const wsUrl = `${protocol}//${window.location.host}/api/v1/k8s/cluster/${clusterId.value}/namespaces/${namespace.value}/pods/${podName.value}/terminal?containerName=${selectedContainer.value}&token=${encodeURIComponent(token)}`
+    const getWsBaseUrl = () => {
+      const baseUrl = (process.env.VUE_APP_API_BASE_URL || '').replace(/\/$/, '')
+      if (baseUrl.startsWith('http')) {
+        return baseUrl.replace(/^http/, 'ws')
+      }
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      return `${protocol}//${window.location.host}${baseUrl}`
+    }
+
+    const wsUrl = `${getWsBaseUrl()}/api/v1/k8s/cluster/${clusterId.value}/namespaces/${namespace.value}/pods/${podName.value}/terminal?containerName=${selectedContainer.value}&command=${encodeURIComponent(selectedCommand.value)}&token=${encodeURIComponent(token)}`
     
     console.log('🔌 WebSocket连接URL:', wsUrl)
     console.log('🔑 使用token:', token ? '***' + token.slice(-4) : 'null')
@@ -468,6 +521,11 @@ const focusTerminal = () => {
   }
 }
 
+// 返回上一页
+const goBack = () => {
+  router.go(-1)
+}
+
 onMounted(() => {
   initTerminal()
   getContainers()
@@ -522,6 +580,10 @@ onUnmounted(() => {
   padding: 10px;
   border-radius: 4px;
   overflow: hidden;
+}
+
+.file-manager-dialog {
+  border-radius: 8px;
 }
 
 .terminal-placeholder {
