@@ -146,7 +146,7 @@ DevOps运维管理系统优势：
 </details>
 
 ### 测试环境
-https://autoops.com.cn/   
+http://autoops.com.cn/   
 账号：test
 密码：123456
 ### 视频安装使用介绍
@@ -156,7 +156,7 @@ https://www.bilibili.com/video/BV179Wxz1Ez6/?vd_source=37f81c1b36b3818cbad621bcb
 
 ## 安装步骤
 docker一键安装
-[docker部署文档](docker/README.md)
+
 #### 拉取镜像(可选,首次部署会自动拉取)
 ```bash
 # 脚本+镜像版本+ip+前端端口
