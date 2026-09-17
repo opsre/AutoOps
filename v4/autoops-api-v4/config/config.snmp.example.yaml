@@ -1,0 +1,18 @@
+# SNMP 采集配置示例
+# 将以下配置添加到 config.yaml 文件的 monitor 部分
+
+monitor:
+  prometheus:
+    url: "http://8.130.14.34:9090"
+  pushgateway:
+    url: "http://8.130.14.34:9091"
+  agent:
+    heartbeat_server_url: "http://127.0.0.1:8000/api/v1/monitor/agent/heartbeat"
+    heartbeat_token: "agent-heartbeat-token-2024"
+
+  # SNMP 采集配置(新增)
+  snmp:
+    collect_interval: 60  # 采集间隔(秒), 默认60秒
+    timeout: 5            # SNMP超时时间(秒)
+    retries: 3            # 重试次数
+    concurrent_limit: 10  # 并发采集设备数量限制

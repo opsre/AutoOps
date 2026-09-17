@@ -1,0 +1,210 @@
+假设我已经申请到了 有 App ID 和 Secret，相应的权限
+下一步如何开发 需要如何对接
+好的，假设您已经在飞书开放平台成功创建了应用，并获取了 App ID 和 App Secret，同时也为应用开通了相应的知识库 API 权限（如 wiki:wiki）。接下来，我将为您详细说明在 Vue3 + Gin 的前后端分离架构下，如何一步步对接飞书知识库 API。
+整个流程的核心在于后端（Gin）负责与飞书服务器进行安全通信，处理令牌管理；而前端（Vue3）则负责界面交互，并通过调用后端提供的 API 来获取数据。
+第一步：后端（Gin）开发 - 构建飞书服务层
+首先，在后端创建负责与飞书交互的核心服务模块。
+1. 定义数据结构（models.go）
+go
+// 用于请求飞书 API 的通用响应结构
+type FeishuResponse struct {
+    Code int         `json:"code"`
+    Msg  string      `json:"msg"`
+    Data interface{} `json:"data"`
+}
+// 获取 tenant_access_token 的请求和响应结构
+type TokenReq struct {
+    AppId     string `json:"app_id"`
+    AppSecret string `json:"app_secret"`
+}
+type TokenResp struct {
+    TenantAccessToken string `json:"tenant_access_token"`
+    Expire            int    `json:"expire"`
+}
+// 知识空间数据结构
+type WikiSpace struct {
+    SpaceId   string `json:"space_id"`
+    Name      string `json:"name"`
+    Description string `json:"description"`
+}
+// 知识节点数据结构
+type WikiNode struct {
+    SpaceId      string `json:"space_id"`
+    NodeToken    string `json:"node_token"`
+    ObjToken     string `json:"obj_token"`
+    ObjType      string `json:"obj_type"` // e.g., "docx", "sheet", "bitable"
+    Title        string `json:"title"`
+    ParentNodeToken string `json:"parent_node_token"`
+}
+2. 创建飞书服务（feishu_service.go）
+这个服务类封装了所有与飞书 API 交互的逻辑。
+go
+package services
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io/ioutil"
+    "net/http"
+    "time"
+)
+type FeishuService struct {
+    AppID        string
+    AppSecret    string
+    // 简单的内存缓存，生产环境应使用 Redis 等
+    tenantToken  string
+    tokenExpiry  time.Time
+}
+// 创建飞书服务实例
+func NewFeishuService(appID, appSecret string) *FeishuService {
+    return &FeishuService{
+        AppID:     appID,
+        AppSecret: appSecret,
+    }
+}
+// 获取或刷新 Tenant Access Token (带简单缓存)
+func (s *FeishuService) GetTenantAccessToken() (string, error) {
+    // 检查 token 是否有效且未过期
+    if s.tenantToken != "" && time.Now().Before(s.tokenExpiry.Add(-5*time.Minute)) {
+        return s.tenantToken, nil
+    }
+    // 构造请求
+    url := "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+    reqBody := TokenReq{
+        AppId:     s.AppID,
+        AppSecret: s.AppSecret,
+    }
+    jsonData, _ := json.Marshal(reqBody)
+    // 发送 HTTP 请求
+    resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+    if err != nil {
+        return "", fmt.Errorf("failed to request token: %v", err)
+    }
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+    var tokenResp FeishuResponse
+    tokenResp.Data = &TokenResp{}
+    json.Unmarshal(body, &tokenResp)
+    if tokenResp.Code != 0 {
+        return "", fmt.Errorf("feishu API error: %s", tokenResp.Msg)
+    }
+    tokenData := tokenResp.Data.(*TokenResp)
+    s.tenantToken = tokenData.TenantAccessToken
+    s.tokenExpiry = time.Now().Add(time.Duration(tokenData.Expire) * time.Second)
+    return s.tenantToken, nil
+}
+// 封装调用飞书 API 的通用方法
+func (s *FeishuService) callFeishuAPI(method, apiURL string, reqData interface{}, respData interface{}) error {
+    token, err := s.GetTenantAccessToken()
+    if err != nil {
+        return err
+    }
+    var jsonReq []byte
+    if reqData != nil {
+        jsonReq, _ = json.Marshal(reqData)
+    }
+    client := &http.Client{}
+    req, _ := http.NewRequest(method, apiURL, bytes.NewBuffer(jsonReq))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+token) // 添加认证头
+    resp, err := client.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+    var feishuResp FeishuResponse
+    feishuResp.Data = respData
+    json.Unmarshal(body, &feishuResp)
+    if feishuResp.Code != 0 {
+        return fmt.Errorf("feishu API error (code %d): %s", feishuResp.Code, feishuResp.Msg)
+    }
+    return nil
+}
+// 获取知识空间列表
+func (s *FeishuService) GetWikiSpaces() ([]WikiSpace, error) {
+    url := "https://open.feishu.cn/open-apis/wiki/v2/spaces"
+    var responseData struct {
+        Items []WikiSpace `json:"items"`
+    }
+    err := s.callFeishuAPI("GET", url, nil, &responseData)
+    if err != nil {
+        return nil, err
+    }
+    return responseData.Items, nil
+}
+// 获取指定空间下的节点列表
+func (s *FeishuService) GetSpaceNodes(spaceID string) ([]WikiNode, error) {
+    url := fmt.Sprintf("https://open.feishu.cn/open-apis/wiki/v2/spaces/%s/nodes", spaceID)
+    var responseData struct {
+        Items []WikiNode `json:"items"`
+    }
+    err := s.callFeishuAPI("GET", url, nil, &responseData)
+    if err != nil {
+        return nil, err
+    }
+    return responseData.Items, nil
+}
+// 获取节点详情
+func (s *FeishuService) GetNodeDetail(spaceID, nodeToken string) (*WikiNode, error) {
+    url := fmt.Sprintf("https://open.feishu.cn/open-apis/wiki/v2/spaces/%s/nodes/%s", spaceID, nodeToken)
+    var node WikiNode
+    err := s.callFeishuAPI("GET", url, nil, &node)
+    if err != nil {
+        return nil, err
+    }
+    return &node, nil
+}
+3. 创建 Gin 路由控制器（controller.go）
+创建处理 HTTP 请求的控制器。
+go
+package controllers
+import (
+    "net/http"
+    "your-app/services"
+    "github.com/gin-gonic/gin"
+)
+type FeishuController struct {
+    feishuService *services.FeishuService
+}
+// 初始化控制器
+func NewFeishuController(appID, appSecret string) *FeishuController {
+    return &FeishuController{
+        feishuService: services.NewFeishuService(appID, appSecret),
+    }
+}
+// 请求体：接收前端传来的 App ID 和 Secret
+type AuthRequest struct {
+    AppID     string `json:"app_id" binding:"required"`
+    AppSecret string `json:"app_secret" binding:"required"`
+}
+// 认证并初始化服务
+func (ctrl *FeishuController) Auth(c *gin.Context) {
+    var req AuthRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    // 初始化服务（在实际应用中，您可能需要更复杂的初始化逻辑）
+    ctrl.feishuService = services.NewFeishuService(req.AppID, req.AppSecret)
+    
+    // 测试 token 是否有效
+    _, err := ctrl.feishuService.GetTenantAccessToken()
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication failed: " + err.Error()})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"message": "Feishu service initialized successfully"})
+}
+// 获取知识空间列表
+func (ctrl *FeishuController) GetSpaces(c *gin.Context) {
+    spaces, err := ctrl.feishuService.GetWikiSpaces()
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"spaces": spaces})
+}
+// 获取指定空间下的节点
+func (ctrl *FeishuController) GetNodes(c *gin.Context) {
+    spaceID := c.P

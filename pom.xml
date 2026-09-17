@@ -1,0 +1,1228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.jjshome.bigdata</groupId>
+    <artifactId>data-platform-web</artifactId>
+    <name>data-platform-web</name>
+    <description>大数据dpf</description>
+    <packaging>jar</packaging>
+
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>17</java.version>
+        <encoding>UTF-8</encoding>
+        <fastjson.version>1.2.83</fastjson.version>
+        <lang3.version>3.8.1</lang3.version>
+        <kafka.version>0.10.0.0</kafka.version>
+        <jjs.version>1.7.2</jjs.version>
+        <ac.bdanalysis.version>1.0.1</ac.bdanalysis.version>
+
+        <servlet.version>2.4</servlet.version>
+        <jsp.version>2.0</jsp.version>
+        <jstl.version>1.2</jstl.version>
+        <fileupload.version>1.3.3</fileupload.version>
+        <io.version>2.4</io.version>
+        <hessian.version>4.0.7</hessian.version>
+        <poi.version>4.0.0</poi.version>
+        <jjsmsg-api.version>1.0.2-SNAPSHOT</jjsmsg-api.version>
+        <lang3.version>3.9</lang3.version>
+        <mysql2.version>5.1.25</mysql2.version>
+        <main.class>com.jjshome.bigdata.DpfApplication</main.class>
+        <!-- 开发环境部署参数 -->
+        <!--        <devops-docker-port>8080</devops-docker-port>-->
+        <devops-target-path>target/data-platform-web/</devops-target-path>
+        <!--      执行命令 ：选填      -->
+        <devops-run-packaging>/home/admin/app/app/data-platform-web.jar</devops-run-packaging>
+    </properties>
+
+    <parent>
+        <groupId>com.jjshome.bigdata</groupId>
+        <artifactId>bd-bigdata-platform</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.jjshome.fang.online.esf</groupId>
+            <artifactId>fang-api-client</artifactId>
+            <version>1.0.4-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.pagehelper</groupId>
+                    <artifactId>pagehelper</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.jjshome.jjstax</groupId>
+            <artifactId>jjstax-api-client</artifactId>
+            <version>1.0.1-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.pagehelper</groupId>
+                    <artifactId>pagehelper</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo</artifactId>
+            <version>3.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+            <version>3.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-registry-nacos</artifactId>
+            <version>3.2.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.alibaba.nacos</groupId>
+                    <artifactId>nacos-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>api.jjshome.bigdata</groupId>
+            <artifactId>bd-api-client</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.leyoujia</groupId>
+                    <artifactId>sonar-java-plugins</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.pagehelper</groupId>
+                    <artifactId>pagehelper</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>fastjson</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-httpclient</groupId>
+                    <artifactId>commons-httpclient</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>dubbo</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jjshome.platform</groupId>
+            <artifactId>device-common</artifactId>
+            <version>1.0.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.sf.dozer</groupId>
+                    <artifactId>dozer</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>joda-time</groupId>
+                    <artifactId>joda-time</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.belerweb</groupId>
+                    <artifactId>pinyin4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.leyoujia.platform</groupId>
+                    <artifactId>hr-mds</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.gavaghan</groupId>
+                    <artifactId>geodesy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.jjshome.bigdata</groupId>
+                    <artifactId>data-platform-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>netty</artifactId>
+                    <groupId>io.netty</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>fastjson</artifactId>
+                    <groupId>com.alibaba</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>bd-api-client</artifactId>
+                    <groupId>api.jjshome.bigdata</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.leyoujia.platform</groupId>
+            <artifactId>common</artifactId>
+            <version>1.1.8</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-collections4</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>fastjson</artifactId>
+                    <groupId>com.alibaba</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+        <!-- client -->
+        <dependency>
+            <groupId>com.jjshome.bigdata</groupId>
+            <artifactId>bigdata-client</artifactId>
+            <version>1.0.3-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.storm</groupId>
+                    <artifactId>storm-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.storm</groupId>
+                    <artifactId>storm-kafka</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.jjshome.fang</groupId>
+                    <artifactId>jjs-fang-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-collections</groupId>
+                    <artifactId>commons-collections</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>fastjson</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.springframework.data</groupId>
+                    <artifactId>spring-data-mongodb</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.pagehelper</groupId>
+                    <artifactId>pagehelper</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.sourceforge.htmlunit</groupId>
+                    <artifactId>htmlunit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--        <dependency>-->
+        <!--            <groupId>org.springframework.boot</groupId>-->
+        <!--            <artifactId>spring-boot</artifactId>-->
+        <!--            <version>2.1.3.RELEASE</version>-->
+        <!--        </dependency>-->
+        <!--websocket-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+            <exclusions>
+                <!-- 使用 Log4j2，避免引入 Spring Boot 默认日志桥接 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+
+        <dependency><!-- AOP面向切面 -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+            <exclusions>
+                <!-- 切换log4j2日志读取 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--druid 依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+            <version>1.1.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-freemarker</artifactId>
+            <exclusions>
+                <!-- 切换log4j2日志读取 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+            <exclusions>
+                <!-- 使用 Log4j2，避免引入 Spring Boot 默认日志桥接 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--引入日志剔除默认的日志格式-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <!-- 切换log4j2日志读取 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+            <version>3.0.2</version>
+            <exclusions>
+                <!-- 排除自带的logback依赖 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- mysql start -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${mysql2.version}</version>
+        </dependency>
+        <!-- mysql end -->
+
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>11.2.1.jre17</version>
+        </dependency>
+
+
+        <!-- SpringSession 相关依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <exclusions>
+                <!-- 排除自带的logback依赖 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.11</artifactId>
+            <version>${kafka.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-log4j12</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.qiniu</groupId>
+            <artifactId>qiniu-java-sdk</artifactId>
+            <version>[7.0.0, 7.0.99]</version>
+        </dependency>
+
+        <!--错误信息拦截-->
+        <dependency>
+            <groupId>com.jjshome.bigdata</groupId>
+            <artifactId>bigdata-log</artifactId>
+            <version>1.0.5-SNAPSHOT</version>
+            <exclusions>
+                <!-- 切换log4j2日志读取 -->
+                <exclusion>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>fastjson</artifactId>
+                </exclusion>
+
+                <!-- 排除房源组的log4j依赖 -->
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <!-- 排除房源组的slf4j-log4j12依赖 -->
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.21.1</version>
+        </dependency>
+        <!--log4j2的依赖-->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.21.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>2.21.1</version>
+        </dependency>
+
+        <!-- 配置 log4j2 -->
+        <!--        <dependency>-->
+        <!--            <groupId>org.springframework.boot</groupId>-->
+        <!--            <artifactId>spring-boot-starter-log4j2</artifactId>-->
+        <!--&lt;!&ndash;            <exclusions>&ndash;&gt;-->
+        <!--&lt;!&ndash;                <exclusion>&ndash;&gt;-->
+        <!--&lt;!&ndash;                    <artifactId>log4j-slf4j-impl</artifactId>&ndash;&gt;-->
+        <!--&lt;!&ndash;                    <groupId>org.apache.logging.log4j</groupId>&ndash;&gt;-->
+        <!--&lt;!&ndash;                </exclusion>&ndash;&gt;-->
+        <!--&lt;!&ndash;            </exclusions>&ndash;&gt;-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.apache.logging.log4j</groupId>-->
+        <!--            <artifactId>log4j-iostreams</artifactId>-->
+        <!--            <version>2.14.1</version>-->
+        <!--        </dependency>-->
+        <!-- 加上这个才能辨认到log4j2.yml文件 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
+        <!-- 错误信息拦截获取用户信息 -->
+        <dependency>
+            <groupId>com.jjshome</groupId>
+            <artifactId>jjs</artifactId>
+            <version>${jjs.version}</version>
+        </dependency>
+
+
+        <!--新系统权限的依赖-->
+        <dependency>
+            <groupId>com.jjshome.jjspurview</groupId>
+            <artifactId>purview-api</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.pagehelper</groupId>
+                    <artifactId>pagehelper</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>fastjson</artifactId>
+                    <groupId>com.alibaba</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.leyoujia.platform</groupId>
+            <artifactId>purview</artifactId>
+            <version>1.1.4</version>
+        </dependency>
+
+        <!--dubbo-springBoot依赖-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.alibaba.spring.boot</groupId>-->
+        <!--            <artifactId>dubbo-spring-boot-starter</artifactId>-->
+        <!--            <version>2.0.0</version>-->
+        <!--        </dependency>-->
+
+        <!-- ZooKeeper client -->
+        <dependency>
+            <groupId>com.101tec</groupId>
+            <artifactId>zkclient</artifactId>
+            <version>0.10</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- 微信相关依赖 -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient-cache</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpmime</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.json-lib</groupId>
+            <artifactId>json-lib</artifactId>
+            <version>2.4</version>
+            <classifier>jdk15</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.2</version>
+        </dependency>
+
+        <!--引入单元测试框架：PowerMockito-->
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito2</artifactId>
+            <version>2.0.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <version>2.0.2</version>
+            <scope>test</scope>
+        </dependency>
+        <!--swagger2接口-->
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>2.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>swagger-bootstrap-ui</artifactId>
+            <version>1.9.6</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>javassist</artifactId>
+                    <groupId>org.javassist</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+
+        <!-- jsp begin -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jstl</artifactId>
+            <version>${jstl.version}</version>
+        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>javax.servlet</groupId>-->
+        <!--            <artifactId>servlet-api</artifactId>-->
+        <!--            <version>${servlet.version}</version>-->
+        <!--            <scope>provided</scope>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jsp-api</artifactId>
+            <version>${jsp.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- jsp end -->
+
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>${fileupload.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${io.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>${fastjson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${lang3.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.caucho</groupId>
+            <artifactId>hessian</artifactId>
+            <version>${hessian.version}</version>
+        </dependency>
+
+        <!-- poi -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-schemas</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-scratchpad</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <!-- poi end -->
+
+        <!-- kettel -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-vfs2</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scannotation</groupId>
+            <artifactId>scannotation</artifactId>
+            <version>1.0.3</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>javassist</artifactId>
+                    <groupId>javassist</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.dom4j</groupId>
+            <artifactId>dom4j</artifactId>
+            <version>2.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sourceforge.jexcelapi</groupId>
+            <artifactId>jxl</artifactId>
+            <version>2.6.12</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>rhino</groupId>
+            <artifactId>js</artifactId>
+            <version>1.7R2</version>
+        </dependency>
+        <dependency>
+            <groupId>jaxen</groupId>
+            <artifactId>jaxen</artifactId>
+            <version>1.1.6</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.2-alpha1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.pentaho.metastore.api</groupId>
+            <artifactId>metastore</artifactId>
+            <version>5.2.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+            <version>1.4.7</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jjshome.bigdata</groupId>
+            <artifactId>kettle-vfs</artifactId>
+            <version>5.2.0.0</version>
+            <classifier>pentaho</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.jjshome.bigdata</groupId>
+            <artifactId>kettle-engine</artifactId>
+            <version>5.2.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jjshome.bigdata</groupId>
+            <artifactId>kettle-core</artifactId>
+            <version>5.2.0.0</version>
+        </dependency>
+        <!-- kettle end -->
+        <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>1.9.6</version>
+        </dependency>
+        <!-- 汉字转换为拼音 -->
+        <dependency>
+            <groupId>com.belerweb</groupId>
+            <artifactId>pinyin4j</artifactId>
+            <version>2.5.1</version>
+        </dependency>
+        <!-- mongodb驱动 -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver</artifactId>
+            <version>3.8.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>bson</artifactId>
+            <version>3.8.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jjshome.im</groupId>
+            <artifactId>jjs-im</artifactId>
+            <version>1.1.5</version>
+        </dependency>
+        <!--sonar参数变更检查 -->
+        <dependency>
+            <groupId>com.leyoujia</groupId>
+            <artifactId>sonar-java-plugins</artifactId>
+            <version>1.0.1-SNAPSHOT</version>
+        </dependency>
+
+        <!-- Lts定时任务调度平台 -->
+        <dependency>
+            <groupId>com.lts</groupId>
+            <artifactId>lts-tasktracker</artifactId>
+            <version>1.6.5.1.jjs</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lts</groupId>
+            <artifactId>lts-spring</artifactId>
+            <version>1.6.5.1.jjs</version>
+        </dependency>
+
+        <!-- 工作流接口 -->
+        <dependency>
+            <groupId>com.jjshome.platform</groupId>
+            <artifactId>workflow</artifactId>
+            <version>2.5.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.leyoujia.platform</groupId>
+            <artifactId>jjrplus-mds</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <!-- 快乐基金接口 -->
+        <dependency>
+            <groupId>com.jjshome.oa</groupId>
+            <artifactId>oa-dubbo</artifactId>
+            <version>1.3.3</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sourceforge.jtds</groupId>
+            <artifactId>jtds</artifactId>
+            <version>1.3.1</version>
+        </dependency>
+        <!-- 新系统消息通知 -->
+        <dependency>
+            <artifactId>msg-api-client</artifactId>
+            <groupId>com.jjshome.msg</groupId>
+            <version>${jjsmsg-api.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- 房源 -->
+        <dependency>
+            <groupId>com.jjshome.esf</groupId>
+            <artifactId>esf-api-client</artifactId>
+            <version>3.2.7-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.pagehelper</groupId>
+                    <artifactId>pagehelper</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.validation</groupId>
+                    <artifactId>validation-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jjshome.bigdata</groupId>
+            <artifactId>data-platform-client</artifactId>
+            <version>1.0.24-jdk-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.jjshome.bigdata</groupId>
+                    <artifactId>bigdata-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.pagehelper</groupId>
+                    <artifactId>pagehelper</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--引入公司的人事相关数据的jar-->
+        <dependency>
+            <groupId>com.jjshome.cloudoa</groupId>
+            <artifactId>nhr-api-client</artifactId>
+            <version>1.5.9</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>plexus-utils</artifactId>
+                    <groupId>org.codehaus.plexus</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.jjshome.cloudoa</groupId>
+            <artifactId>nhr-common</artifactId>
+            <version>1.1.1</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>javassist</artifactId>
+                    <groupId>org.javassist</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.leyoujia.platform</groupId>
+            <artifactId>hr-mds</artifactId>
+            <version>RELEASE</version>
+            <scope>compile</scope>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.jjshome.login</groupId>
+            <artifactId>jjs_login</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>4.4.10</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.6</version>
+        </dependency>
+
+        <!-- xxl 引入 -->
+        <dependency>
+            <groupId>com.xuxueli</groupId>
+            <artifactId>xxl-job-core</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.0</version>
+        </dependency>
+
+        <!--分页依赖-->
+        <dependency>
+            <groupId>com.github.pagehelper</groupId>
+            <artifactId>pagehelper-spring-boot-starter</artifactId>
+            <version>2.0.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mybatis.spring.boot</groupId>
+                    <artifactId>mybatis-spring-boot-starter</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${lang3.version}</version>
+        </dependency>
+        <!-- sc start -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <exclusions>
+                <!-- 使用 Log4j2，避免引入 Spring Boot 默认日志桥接 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.spring</groupId>
+            <artifactId>spring-context-support</artifactId>
+        </dependency>
+
+        <!--        <dependency>-->
+        <!--            <groupId>com.alibaba.cloud</groupId>-->
+        <!--            <artifactId>spring-cloud-starter-dubbo</artifactId>-->
+        <!--            <exclusions>-->
+        <!--                <exclusion>-->
+        <!--                    <artifactId>javassist</artifactId>-->
+        <!--                    <groupId>org.javassist</groupId>-->
+        <!--                </exclusion>-->
+        <!--            </exclusions>-->
+        <!--        </dependency>-->
+
+        <!--        <dependency>-->
+        <!--            <groupId>com.alibaba.cloud</groupId>-->
+        <!--            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>-->
+        <!--            <exclusions>-->
+        <!--                <exclusion>-->
+        <!--                    <artifactId>javassist</artifactId>-->
+        <!--                    <groupId>org.javassist</groupId>-->
+        <!--                </exclusion>-->
+        <!--            </exclusions>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-client</artifactId>
+            <version>5.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-recipes</artifactId>
+            <version>5.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-x-discovery</artifactId>
+            <version>5.3.0</version>
+        </dependency>
+        <!-- sc end -->
+
+        <!-- 乐聊通知相关 -->
+        <dependency>
+            <groupId>com.leyoujia.platform</groupId>
+            <artifactId>msg-center</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- vault加密 -->
+        <dependency>
+            <groupId>com.leyoujia</groupId>
+            <artifactId>lyj-vault-encrypt</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.leyoujia</groupId>
+            <artifactId>lyj-vault-decrypt</artifactId>
+            <version>1.0.3.1</version>
+        </dependency>
+        <!-- HessianProxyFactoryBean在这个包下 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <!-- 使用 Log4j2，避免引入 Spring Boot 默认日志桥接 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+
+        <!-- 表情包处理 -->
+        <dependency>
+            <groupId>com.github.binarywang</groupId>
+            <artifactId>java-emoji-converter</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <exclusions>
+                <!-- 使用 Log4j2，避免引入 Spring Boot 默认日志桥接 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.leyoujia.platform</groupId>
+            <artifactId>task-platform-client</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jjshome</groupId>
+            <artifactId>jjscj</artifactId>
+            <version>8.0.1</version>
+        </dependency>
+
+        <!-- 乐办公OA接口 -->
+        <dependency>
+            <groupId>com.jjshome.coa</groupId>
+            <artifactId>coa</artifactId>
+            <version>1.0.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.leyoujia.platform</groupId>
+            <artifactId>cj-dubbo-api</artifactId>
+            <version>1.3.5-SNAPSHOT</version>
+        </dependency>
+
+    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>2.17.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>2.17.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>2.17.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    <distributionManagement>
+        <repository>
+            <id>snapshots</id>
+            <name>snapshots</name>
+            <url>http://172.16.5.251:8081/nexus/content/repositories/snapshots</url>
+        </repository>
+    </distributionManagement>
+
+    <build>
+        <finalName>data-platform-web</finalName>
+        <plugins>
+            <!-- <plugin>
+               <groupId>org.springframework.boot</groupId>
+               <artifactId>spring-boot-maven-plugin</artifactId>
+               <configuration>
+                   <fork>true</fork>
+                   <mainClass>com.jjshome.bigdata.DpfApplication</mainClass>
+               </configuration>
+               <executions>
+                   <execution>
+                       <goals>
+                           <goal>repackage</goal>
+                       </goals>
+                   </execution>
+               </executions>
+           </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/${project.name}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>../lib/</classpathPrefix>
+                            <mainClass>com.jjshome.bigdata.DpfApplication</mainClass>
+                            <useUniqueVersions>false</useUniqueVersions>
+                        </manifest>
+                        <manifestEntries>
+                            <Class-Path>../conf/</Class-Path>
+                        </manifestEntries>
+                    </archive>
+                    <outputDirectory>${project.build.directory}/${project.name}/app</outputDirectory>
+                    <excludes>
+                        <exclude>*.yml</exclude>
+                        <exclude>temp/*</exclude>
+                        <exclude>upload/*</exclude>
+                        <exclude>export_xlsx*.ktr</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <encoding>UTF-8</encoding>
+                            <!--打成jar包后复制到的路径-->
+                            <outputDirectory>
+                                ${project.build.directory}/${project.name}/conf
+                            </outputDirectory>
+                            <resources>
+                                <resource>
+                                    <!--项目中的路径-->
+                                    <directory>src/main/resources/</directory>
+                                    <includes>
+                                        <include>*.yml</include>
+                                        <include>temp/*</include>
+                                        <exclude>upload/*</exclude>
+                                        <include>export_xlsx*.ktr</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <!--可配置多个提取复制路径只需要 “<id>”名字不一样即可-->
+                    <execution>
+                        <id>copy-bin</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <encoding>UTF-8</encoding>
+                            <outputDirectory>
+                                ${project.build.directory}/${project.name}/bin
+                            </outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources/bin</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-res</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <encoding>UTF-8</encoding>
+                            <outputDirectory>${project.build.directory}/${project.name}/res </outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources/res</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.leyoujia.plugin</groupId>
+                <artifactId>devops-maven-plugin</artifactId>
+                <version>1.2.0-jdk17</version>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

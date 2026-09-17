@@ -1,0 +1,58 @@
+html, body, #app {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.el-card {
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) !important;
+}
+
+.el-row {
+    margin-bottom: 5px;
+}
+
+.el-pagination {
+    margin-top: 10px;
+}
+
+/* 🎨 全局按钮样式统一规范 */
+/* 所有按钮圆角边框 */
+.el-button {
+    border-radius: 8px !important;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.el-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.el-button:active {
+    transform: translateY(0);
+}
+
+/* 调整左侧导航菜单间距 - 减少按钮之间的距离 */
+.el-menu-item {
+    height: 45px !important; /* 减少菜单项高度从默认56px到45px */
+    line-height: 45px !important;
+    margin-bottom: 2px !important; /* 添加小的底部间距 */
+}
+
+/* 调整子菜单间距 */
+.el-sub-menu {
+    margin-bottom: 2px !important; /* 减少子菜单间距 */
+}
+
+.el-sub-menu .el-menu-item {
+    height: 40px !important; /* 子菜单项稍微小一些 */
+    line-height: 40px !important;
+    margin-bottom: 1px !important;
+}
+
+/* 调整子菜单标题间距 */
+.el-sub-menu__title {
+    height: 45px !important;
+    line-height: 45px !important;
+}

@@ -1,0 +1,62 @@
+# 任务执行目录
+/task/
+logs/
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# 编译后的二进制文件
+dodevops-api
+gin-api
+test-build
+tmp-build
+devops
+jenkins-api-test
+jenkins-test
+
+# Go build cache
+.gocache/
+.cache/
+
+# Go modules cache
+go.sum
+go.mod.bak
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Config files (if containing sensitive info)
+config/local.*
+*.env
+
+# Uploaded files
+upload/
+uploads/
+# SSH 私钥（不提交到 Git）
+docker/ssh_keys/id_rsa
+docker/ssh_keys/known_hosts

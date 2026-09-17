@@ -1,0 +1,305 @@
+package winrm
+
+import (
+	"bytes"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strings"
+	"time"
+)
+
+// Manager WinRM管理器
+type Manager struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	UseHTTPS bool
+	Timeout  time.Duration
+}
+
+// Config WinRM配置
+type Config struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	UseHTTPS bool
+}
+
+// NewManager 创建WinRM管理器
+func NewManager(config Config) *Manager {
+	port := config.Port
+	if port == 0 {
+		if config.UseHTTPS {
+			port = 5986
+		} else {
+			port = 5985
+		}
+	}
+
+	return &Manager{
+		Host:     config.Host,
+		Port:     port,
+		Username: config.Username,
+		Password: config.Password,
+		UseHTTPS: config.UseHTTPS,
+		Timeout:  60 * time.Second,
+	}
+}
+
+// InstallWindowsExporter 安装Windows Exporter（支持主动推送和被动采集两种模式）
+func (m *Manager) InstallWindowsExporter(installerURL, version string, exporterPort int, pushgatewayURL string, pushInterval int) error {
+	// 1. 下载安装包到临时目录
+	log.Printf("   📥 正在下载安装包...")
+	log.Printf("      URL: %s", installerURL)
+	downloadCmd := fmt.Sprintf(`
+$tempFile = "$env:TEMP\windows_exporter-%s.msi"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Invoke-WebRequest -Uri "%s" -OutFile $tempFile
+Write-Output $tempFile
+`, version, installerURL)
+
+	output, err := m.RunCommand(downloadCmd)
+	if err != nil {
+		return fmt.Errorf("下载安装包失败: %v", err)
+	}
+
+	installerPath := strings.TrimSpace(output)
+	log.Printf("   ✅ 下载完成: %s", installerPath)
+
+	// 2. 先安装Windows Exporter
+	log.Printf("   📦 正在安装 Windows Exporter...")
+	log.Printf("      版本: %s, 端口: %d", version, exporterPort)
+	installCmd := fmt.Sprintf(`
+$installerPath = "%s"
+$arguments = @(
+    "/i"
+    $installerPath
+    "/quiet"
+    "/qn"
+    "/norestart"
+    "ENABLED_COLLECTORS=cpu,cs,logical_disk,net,os,system,service,memory,process"
+    "LISTEN_PORT=%d"
+)
+Start-Process "msiexec.exe" -ArgumentList $arguments -Wait -NoNewWindow
+$service = Get-Service -Name "windows_exporter" -ErrorAction SilentlyContinue
+if ($service) {
+    Write-Output "安装成功: 服务状态 $($service.Status)"
+} else {
+    Write-Output "安装失败: 未找到服务"
+    exit 1
+}
+`, installerPath, exporterPort)
+
+	output, err = m.RunCommand(installCmd)
+	if err != nil {
+		return fmt.Errorf("安装失败: %v, 输出: %s", err, output)
+	}
+	log.Printf("   ✅ MSI 安装完成: %s", strings.TrimSpace(output))
+
+	// 3. 如果启用了Pushgateway推送模式，创建定时任务
+	if pushgatewayURL != "" && pushInterval > 0 {
+		log.Printf("   ⚙️  配置 Pushgateway 推送任务...")
+		log.Printf("      目标: %s", pushgatewayURL)
+		log.Printf("      间隔: %d 秒", pushInterval)
+
+		pushScriptCmd := fmt.Sprintf(`
+# 创建推送脚本
+$scriptPath = "C:\Windows\System32\push_metrics_to_gateway.ps1"
+$scriptContent = @'
+$exporterUrl = "http://localhost:%d/metrics"
+$pushgatewayUrl = "%s/metrics/job/windows_exporter/instance/$env:COMPUTERNAME"
+try {
+    $metrics = Invoke-WebRequest -Uri $exporterUrl -UseBasicParsing
+    Invoke-WebRequest -Uri $pushgatewayUrl -Method Post -Body $metrics.Content -ContentType "text/plain" -UseBasicParsing | Out-Null
+} catch {
+    Write-Error "推送失败: $_"
+}
+'@
+Set-Content -Path $scriptPath -Value $scriptContent -Force
+
+# 创建计划任务（每%d秒执行一次）
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File $scriptPath"
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Seconds %d)
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+Register-ScheduledTask -TaskName "PushMetricsToGateway" -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force
+Write-Output "已配置Pushgateway推送任务"
+`, exporterPort, pushgatewayURL, pushInterval, pushInterval)
+
+		_, err = m.RunCommand(pushScriptCmd)
+		if err != nil {
+			return fmt.Errorf("配置推送任务失败: %v", err)
+		}
+		log.Printf("   ✅ 推送任务配置完成")
+	}
+
+	// 4. 清理临时文件
+	log.Printf("   🧹 清理临时文件...")
+	cleanCmd := fmt.Sprintf(`Remove-Item -Path "%s" -Force -ErrorAction SilentlyContinue`, installerPath)
+	m.RunCommand(cleanCmd)
+	log.Printf("   ✅ 清理完成")
+
+	return nil
+}
+
+// CheckExporterStatus 检查Windows Exporter状态
+func (m *Manager) CheckExporterStatus() (bool, string, error) {
+	cmd := `
+$service = Get-Service -Name "windows_exporter" -ErrorAction SilentlyContinue
+if ($service) {
+    $version = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | Where-Object { $_.DisplayName -like "*windows_exporter*" }).DisplayVersion
+    Write-Output "installed|$($service.Status)|$version"
+} else {
+    Write-Output "not_installed"
+}
+`
+	output, err := m.RunCommand(cmd)
+	if err != nil {
+		return false, "", err
+	}
+
+	output = strings.TrimSpace(output)
+	if output == "not_installed" {
+		return false, "", nil
+	}
+
+	parts := strings.Split(output, "|")
+	if len(parts) >= 3 {
+		isRunning := parts[1] == "Running"
+		version := parts[2]
+		return isRunning, version, nil
+	}
+
+	return false, "", fmt.Errorf("无法解析服务状态")
+}
+
+// UninstallExporter 卸载Windows Exporter
+func (m *Manager) UninstallExporter() error {
+	cmd := `
+$app = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -like "*windows_exporter*" }
+if ($app) {
+    $app.Uninstall()
+    Write-Output "卸载成功"
+} else {
+    Write-Output "未找到安装程序"
+}
+`
+	_, err := m.RunCommand(cmd)
+	return err
+}
+
+// RunCommand 执行PowerShell命令
+func (m *Manager) RunCommand(command string) (string, error) {
+	scheme := "http"
+	if m.UseHTTPS {
+		scheme = "https"
+	}
+
+	url := fmt.Sprintf("%s://%s:%d/wsman", scheme, m.Host, m.Port)
+
+	// 构建SOAP请求
+	soapEnvelope := m.buildSOAPEnvelope(command)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBufferString(soapEnvelope))
+	if err != nil {
+		return "", err
+	}
+
+	// 设置认证和请求头
+	auth := base64.StdEncoding.EncodeToString([]byte(m.Username + ":" + m.Password))
+	req.Header.Set("Authorization", "Basic "+auth)
+	req.Header.Set("Content-Type", "application/soap+xml;charset=UTF-8")
+	req.Header.Set("User-Agent", "DoDevOps WinRM Client")
+
+	client := &http.Client{
+		Timeout: m.Timeout,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("WinRM请求失败: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("WinRM返回错误 %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// 从SOAP响应中提取输出
+	output := m.extractOutput(string(body))
+	return output, nil
+}
+
+// buildSOAPEnvelope 构建SOAP请求体
+func (m *Manager) buildSOAPEnvelope(command string) string {
+	encodedCommand := base64.StdEncoding.EncodeToString([]byte(command))
+
+	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd">
+  <s:Header>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:ReplyTo>
+      <a:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+    </a:ReplyTo>
+    <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
+    <w:MaxEnvelopeSize>153600</w:MaxEnvelopeSize>
+    <a:MessageID>uuid:00000000-0000-0000-0000-000000000000</a:MessageID>
+    <w:Locale xml:lang="en-US"/>
+    <w:OperationTimeout>PT60S</w:OperationTimeout>
+  </s:Header>
+  <s:Body>
+    <rsp:Shell xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell">
+      <rsp:Command>powershell.exe -EncodedCommand %s</rsp:Command>
+    </rsp:Shell>
+  </s:Body>
+</s:Envelope>`, encodedCommand)
+}
+
+// extractOutput 从SOAP响应中提取输出
+func (m *Manager) extractOutput(soapResponse string) string {
+	// 简化版本：直接查找输出内容
+	// 生产环境建议使用XML解析器
+	start := strings.Index(soapResponse, "<rsp:Stream Name=\"stdout\">")
+	if start == -1 {
+		return ""
+	}
+	start += len("<rsp:Stream Name=\"stdout\">")
+
+	end := strings.Index(soapResponse[start:], "</rsp:Stream>")
+	if end == -1 {
+		return ""
+	}
+
+	encoded := soapResponse[start : start+end]
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return encoded
+	}
+
+	return string(decoded)
+}
+
+// TestConnection 测试WinRM连接
+func (m *Manager) TestConnection() error {
+	output, err := m.RunCommand("Write-Output 'OK'")
+	if err != nil {
+		return err
+	}
+
+	if !strings.Contains(output, "OK") {
+		return fmt.Errorf("连接测试失败: 未收到预期响应")
+	}
+
+	return nil
+}

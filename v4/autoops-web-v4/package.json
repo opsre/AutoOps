@@ -1,0 +1,74 @@
+{
+  "name": "gin-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "CHOKIDAR_USEPOLLING=true WATCHPACK_POLLING=true vue-cli-service serve --mode dev --host 0.0.0.0 --port 8080",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "@antv/x6": "^2.18.1",
+    "@antv/x6-vue-shape": "^2.1.2",
+    "@braks/vue-flow": "^0.4.41",
+    "@element-plus/icons-vue": "^2.3.1",
+    "@logicflow/core": "^2.1.0",
+    "@xterm/addon-attach": "^0.11.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "axios": "^0.27.2",
+    "core-js": "^3.8.3",
+    "echarts": "^5.1.2",
+    "element-plus": "^2.10.2",
+    "guacamole-common-js": "^1.5.0",
+    "highlight.js": "^11.11.1",
+    "js-yaml": "^4.1.0",
+    "less": "^4.1.1",
+    "less-loader": "^8.0.0",
+    "moment": "^2.30.1",
+    "monaco-editor": "^0.55.1",
+    "monaco-editor-webpack-plugin": "^7.1.1",
+    "vue": "^3.5.17",
+    "vue-router": "^4.5.1",
+    "vue3-treeselect": "^0.1.10",
+    "vuex": "^4.0.2",
+    "xterm": "^5.3.0",
+    "xterm-addon-attach": "^0.9.0",
+    "xterm-addon-search": "^0.13.0",
+    "xterm-addon-web-links": "^0.9.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.0.3",
+    "postcss-loader": "^8.1.1",
+    "sass": "^1.89.2",
+    "sass-loader": "^13.3.3",
+    "vue-loader": "^17.4.2",
+    "webpack-dev-server": "^5.2.2"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/vue3-essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}
