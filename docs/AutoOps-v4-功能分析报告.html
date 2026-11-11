@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天枢 AutoOps v4 · 源码功能分析报告</title>
+<style>
+:root{
+  --navy:#102a54; --navy2:#1b3f77; --navy3:#2c5aa0;
+  --gold:#c9a227; --gold-l:#e6d6a0; --gold-bg:#faf6e8;
+  --red:#9b1b1b; --red-bg:#fdf1f1;
+  --ink:#1e293b; --muted:#5b6779; --faint:#8b97a8;
+  --line:#e2e8f0; --bg:#f3f6fb; --card:#ffffff;
+  --teal:#0f766e; --teal-bg:#eaf6f4;
+  --amber:#b45309; --amber-bg:#fdf4e6;
+  --shadow:0 2px 6px rgba(16,42,84,.05),0 12px 34px rgba(16,42,84,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75; font-size:15px;
+  -webkit-font-smoothing:antialiased;
+}
+code,.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--gold),#e8c75a);z-index:99;transition:width .1s linear}
+.layout{display:flex;max-width:1560px;margin:0 auto;align-items:flex-start}
+/* ---------- sidebar ---------- */
+.side{
+  width:252px;flex:0 0 252px;position:sticky;top:0;height:100vh;overflow-y:auto;
+  background:#fff;border-right:1px solid var(--line);padding:26px 0 40px;
+}
+.side-brand{padding:0 24px 18px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.side-brand .mark{display:inline-block;width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--navy),var(--navy3));color:var(--gold-l);text-align:center;line-height:30px;font-weight:700;font-size:15px;vertical-align:middle;margin-right:9px}
+.side-brand b{font-size:15px;color:var(--navy);letter-spacing:.3px}
+.side-brand small{display:block;color:var(--faint);font-size:11px;margin-top:6px;padding-left:39px;letter-spacing:.5px}
+.side nav a{
+  display:block;padding:7px 24px 7px 24px;color:var(--muted);text-decoration:none;font-size:13px;
+  border-left:3px solid transparent;transition:all .18s;
+}
+.side nav a:hover{background:var(--gold-bg);color:var(--navy)}
+.side nav a.active{border-left-color:var(--gold);background:var(--gold-bg);color:var(--navy);font-weight:600}
+.side nav a.sub{padding-left:38px;font-size:12.3px;color:var(--faint)}
+.side-foot{margin:22px 24px 0;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--faint);line-height:1.8}
+/* ---------- main ---------- */
+.main{flex:1;min-width:0;padding:0 46px 90px;max-width:1250px}
+/* hero */
+.hero{
+  margin:30px 0 0;border-radius:16px;overflow:hidden;position:relative;
+  background:linear-gradient(125deg,#091a33 0%,var(--navy) 48%,#1d4785 100%);
+  color:#fff;padding:52px 56px 46px;box-shadow:var(--shadow);
+}
+.hero:before{content:"";position:absolute;right:-90px;top:-120px;width:420px;height:420px;border:1px solid rgba(201,162,39,.22);border-radius:50%}
+.hero:after{content:"";position:absolute;right:10px;top:-40px;width:250px;height:250px;border:1px solid rgba(255,255,255,.08);border-radius:50%}
+.hero .eyebrow{color:var(--gold-l);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-bottom:18px;font-weight:600}
+.hero h1{font-size:38px;line-height:1.3;font-weight:700;letter-spacing:.5px;margin-bottom:12px;position:relative;z-index:1}
+.hero h1 span{color:var(--gold-l)}
+.hero .sub{font-size:15px;color:#c8d7ee;max-width:760px;line-height:1.9;position:relative;z-index:1}
+.hero .rule{width:64px;height:3px;background:var(--gold);margin:24px 0 20px;border-radius:2px}
+.hero-meta{display:flex;flex-wrap:wrap;gap:10px 30px;font-size:12.5px;color:#adc3e2;position:relative;z-index:1}
+.hero-meta b{color:#fff;font-weight:600}
+/* kpi */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:-26px 18px 0;position:relative;z-index:2}
+.kpi{background:#fff;border-radius:12px;padding:18px 14px 16px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--gold)}
+.kpi .n{font-size:26px;font-weight:700;color:var(--navy);line-height:1.2;font-family:"SFMono-Regular",Consolas,monospace}
+.kpi .n small{font-size:12px;font-weight:600;color:var(--muted);margin-left:2px}
+.kpi .l{font-size:11.5px;color:var(--muted);margin-top:6px;letter-spacing:.3px}
+/* section */
+section{padding-top:52px;scroll-margin-top:20px}
+.sec-head{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.sec-no{width:38px;height:38px;flex:0 0 38px;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:var(--gold-l);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;font-family:Consolas,monospace;box-shadow:0 4px 12px rgba(16,42,84,.18)}
+h2{font-size:25px;color:var(--navy);font-weight:700;letter-spacing:.3px}
+.sec-desc{color:var(--muted);font-size:13.5px;margin:0 0 24px 52px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+h3{font-size:17.5px;color:var(--navy);margin:30px 0 12px;padding-left:12px;border-left:4px solid var(--gold);font-weight:650}
+h4{font-size:14.5px;color:var(--navy2);margin:18px 0 8px;font-weight:650}
+p{margin:10px 0}
+.lead{font-size:15.5px;color:#334155;line-height:1.95}
+ul,ol{margin:10px 0 10px 20px}
+li{margin:5px 0}
+a{color:var(--navy3)}
+strong{color:var(--navy);font-weight:650}
+code{background:#eef2f8;color:#284b80;padding:1px 5px;border-radius:4px;font-size:12.4px;word-break:break-all}
+/* panels */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;box-shadow:var(--shadow);margin:16px 0}
+.panel.gold{border-left:4px solid var(--gold)}
+.panel.red{border-left:4px solid var(--red);background:linear-gradient(90deg,var(--red-bg),#fff 30%)}
+.note{background:var(--gold-bg);border:1px solid #ede0b8;border-radius:8px;padding:13px 16px;font-size:13px;color:#6b5a20;margin:14px 0}
+.note b{color:#7a6015}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+/* table */
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;margin:14px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+thead th{background:linear-gradient(180deg,var(--navy),#17386a);color:#fff;font-weight:600;text-align:left;padding:11px 13px;font-size:12.5px;letter-spacing:.3px;border-bottom:2px solid var(--gold)}
+tbody td{padding:9px 13px;border-bottom:1px solid #edf1f6;vertical-align:top;color:#3b4759}
+tbody tr:nth-child(even) td{background:#fafbfd}
+tbody tr:hover td{background:#f2f6fc}
+tbody tr:last-child td{border-bottom:none}
+td.c,th.c{text-align:center}
+td b{color:var(--navy)}
+.tw{overflow-x:auto}
+/* badge */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;line-height:1.7;white-space:nowrap}
+.b-blue{background:#e8effa;color:#1d4b91}
+.b-gold{background:#f8f0d4;color:#8a6d10}
+.b-red{background:#fbe6e6;color:#931e1e}
+.b-green{background:#e2f3ea;color:#176b45}
+.b-gray{background:#eef1f5;color:#5b6779}
+.b-teal{background:var(--teal-bg);color:var(--teal)}
+.b-amber{background:var(--amber-bg);color:var(--amber)}
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.chip{font-family:Consolas,monospace;font-size:11.2px;background:#f0f4fa;border:1px solid #dde6f2;color:#2c558f;padding:3px 8px;border-radius:5px;white-space:nowrap}
+.chip.ai{background:#f6f0fb;border-color:#e6d8f3;color:#6b3fa0}
+/* module card */
+.mods{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.mod{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.mod-h{display:flex;align-items:center;gap:11px;padding:15px 18px;background:linear-gradient(100deg,#f7f9fd,#fff);border-bottom:1px solid var(--line);border-top:3px solid var(--navy2)}
+.mod-h.ai-card{border-top-color:#7b4bab}
+.mod-h .ico{width:32px;height:32px;flex:0 0 32px;border-radius:8px;background:var(--navy);color:var(--gold-l);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:Consolas,monospace}
+.mod-h.ai-card .ico{background:#7b4bab;color:#fff}
+.mod-h .tt{flex:1;min-width:0}
+.mod-h .tt b{display:block;color:var(--navy);font-size:15px;line-height:1.4}
+.mod-h .tt small{color:var(--faint);font-size:11.5px;letter-spacing:.2px}
+.mod-h .cnt{font-family:Consolas,monospace;font-size:11px;color:var(--navy2);background:#eaf0f9;border-radius:14px;padding:3px 9px;white-space:nowrap}
+.mod-b{padding:14px 18px 16px;flex:1}
+.mod-b .pos{font-size:12.8px;color:var(--muted);margin-bottom:9px;line-height:1.75}
+.mod-b ul{margin:6px 0 0 17px;font-size:12.8px;color:#3b4759}
+.mod-b li{margin:3px 0}
+.mod-f{padding:10px 18px 14px;border-top:1px dashed var(--line);font-size:11.2px;color:var(--faint);line-height:1.7}
+.mod-f .lbl{color:var(--navy2);font-weight:600}
+/* bar chart */
+.bars{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px 22px;box-shadow:var(--shadow);margin:16px 0}
+.bar-row{display:grid;grid-template-columns:112px 1fr 46px;align-items:center;gap:12px;margin:8px 0;font-size:12.5px}
+.bar-row .nm{color:var(--navy);font-weight:600;text-align:right}
+.bar-track{height:15px;background:#eef2f8;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--navy2),#4c7fd0);transition:width 1s ease}
+.bar-fill.g{background:linear-gradient(90deg,#a8861b,var(--gold))}
+.bar-row .v{font-family:Consolas,monospace;color:var(--muted);font-size:12px}
+/* flow / timeline */
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:16px 0}
+.flow .step{flex:1;min-width:120px;background:#fff;border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:8px;padding:11px 12px;font-size:12px;position:relative}
+.flow .step b{display:block;color:var(--navy);font-size:12.5px;margin-bottom:3px}
+.flow .step span{color:var(--muted);font-size:11.5px;line-height:1.6}
+.flow .arrow{display:flex;align-items:center;color:var(--gold);font-size:18px;font-weight:700}
+/* tags */
+.tagline{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
+.tag{font-size:11.5px;padding:4px 10px;border-radius:6px;background:#eef3fa;color:var(--navy2);border:1px solid #dce6f4}
+/* footer */
+.foot{margin-top:60px;padding:26px 0 10px;border-top:2px solid var(--navy);display:flex;justify-content:space-between;gap:20px;font-size:12px;color:var(--faint);flex-wrap:wrap}
+.foot b{color:var(--navy)}
+#top{position:fixed;right:24px;bottom:26px;width:40px;height:40px;border-radius:50%;background:var(--navy);color:#fff;border:2px solid var(--gold);display:none;align-items:center;justify-content:center;cursor:pointer;font-size:16px;z-index:20;box-shadow:var(--shadow)}
+/* score */
+.score{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12.5px}
+.score .lb{width:132px;flex:0 0 132px;color:var(--navy);font-weight:600}
+.score .tr{flex:1;height:9px;background:#eef2f8;border-radius:6px;overflow:hidden}
+.score .fl{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--navy2),#5b8ad6)}
+.score .fl.g{background:linear-gradient(90deg,#a8861b,var(--gold))}
+.score .fl.r{background:linear-gradient(90deg,var(--red),#c85a5a)}
+.score .vv{width:42px;text-align:right;font-family:Consolas,monospace;color:var(--muted);font-size:11.5px}
+@media(max-width:1180px){.kpis{grid-template-columns:repeat(3,1fr)}.mods{grid-template-columns:1fr}.main{padding:0 28px 70px}}
+@media(max-width:860px){.side{display:none}.main{padding:0 16px 60px}.hero{padding:34px 24px}.hero h1{font-size:27px}.kpis{grid-template-columns:repeat(2,1fr);margin:-20px 8px 0}.grid2,.grid3{grid-template-columns:1fr}}
+@media print{.side,#top,#progress{display:none}.main{padding:0;max-width:none}.hero{background:var(--navy)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}section{break-inside:auto}.mod,table,.panel{break-inside:avoid}thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div class="layout">
+<aside class="side">
+  <div class="side-brand"><span class="mark">A</span><b>AutoOps v4</b><small>源码功能分析报告 · 2026.11</small></div>
+  <nav id="toc">
+    <a href="#s1">01　报告概览与执行摘要</a>
+    <a href="#s2">02　系统架构与技术栈</a>
+    <a href="#s3">03　后端功能模块全景</a>
+    <a href="#s4">04　前端功能地图与权限</a>
+    <a href="#s5">05　六大核心能力深挖</a>
+    <a href="#s6">06　数据模型与安全合规</a>
+    <a href="#s7">07　部署、配置与运行</a>
+    <a href="#s8">08　质量评估与改进建议</a>
+    <a href="#s9">09　结论</a>
+    <a href="#s10">10　附录：统计口径</a>
+  </nav>
+  <div class="side-foot">分析对象：opsre/AutoOps · v4<br>Commit 7bdd4f8（2026-09-17）<br>本地路径：<code style="font-size:10px">AutoOps/v4/</code><br><br>本报告基于源码静态分析，未运行系统。</div>
+</aside>
+
+<main class="main">
+<div class="hero">
+  <div class="eyebrow">SOURCE CODE FUNCTIONAL ANALYSIS</div>
+  <h1>天枢 <span>AutoOps v4</span><br>源码功能分析报告</h1>
+  <div class="rule"></div>
+  <div class="sub">面向企业级运维自动化平台的一次完整源码级拆解：从 12 个后端业务域、761 条 API 注册、64 个持久化模型，到 66 条前端路由与 AI/智能体能力，逐层还原功能边界、实现路径与工程风险。</div>
+  <div class="hero-meta" style="margin-top:26px">
+    <span>源码仓库 <b>github.com/opsre/AutoOps</b></span>
+    <span>目录 <b>main/v4</b></span>
+    <span>发布提交 <b>7bdd4f8 · 2026-09-17</b></span>
+    <span>分析日期 <b>2026-11-06</b></span>
+    <span>本地副本 <b>AutoOps/v4</b></span>
+  </div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">972</div><div class="l">v4 文件总数</div></div>
+  <div class="kpi"><div class="n">533</div><div class="l">后端 Go 源文件</div></div>
+  <div class="kpi"><div class="n">761</div><div class="l">HTTP 路由注册</div></div>
+  <div class="kpi"><div class="n">12</div><div class="l">后端业务模块</div></div>
+  <div class="kpi"><div class="n">153</div><div class="l">前端 Vue 组件</div></div>
+  <div class="kpi"><div class="n">64</div><div class="l">GORM 迁移模型</div></div>
+</div>
+
+<!-- ======================= 1 ======================= -->
+<section id="s1">
+  <div class="sec-head"><div class="sec-no">01</div><h2>报告概览与执行摘要</h2></div>
+  <div class="sec-desc">源码获取方式、规模口径、产品定位与核心判断</div>
+
+  <h3>1.1 源码获取与本地落地</h3>
+  <p>GitHub 主站与 git 协议在本机网络环境下连接被重置，改用 <code>codeload.github.com</code> 的归档通道下载仓库 <code>main</code> 分支完整快照（<code>AutoOps-main.zip</code>，18.25 MB），解压后保留全仓并聚焦 <code>v4/</code> 目录分析。本地结构如下：</p>
+  <div class="panel">
+    <div class="mono" style="font-size:12.4px;line-height:2;color:#3b4759">
+      C:\Users\zhanguanhai\WorkBuddy\云原生智能运维平台\<br>
+      ├─ <b>AutoOps-v4-功能分析报告.html</b>　← 本报告<br>
+      └─ <b>AutoOps\</b>　（仓库完整快照，含 api / web / docker / k8s / docs / v4 等历史目录）<br>
+      　　├─ README.md　（主线版本说明，镜像已标注 v5.0）<br>
+      　　└─ <b>v4\</b>　← 本次分析对象，提交说明「发布v4版本源码」<br>
+      　　　　├─ <b>autoops-api-v4\</b>　Go 后端，23 MB，533 个 .go 文件<br>
+      　　　　└─ <b>autoops-web-v4\</b>　Vue3 前端，6.6 MB，153 个 .vue 文件
+    </div>
+  </div>
+  <div class="note"><b>版本提示：</b>仓库根 README 描述的是当前主线（部署镜像已为 v5.0，含 VictoriaMetrics / VictoriaLogs / Kafka / Vector 等组件），而 <code>v4/</code> 是 2026-09-17 发布的历史源码快照。本报告所有结论均来自 <code>v4/</code> 目录实际代码，README 仅作为产品定位参考，凡与源码冲突处以源码为准。</div>
+
+  <h3>1.2 规模与技术底座</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:22%">维度</th><th style="width:20%">量化结果</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><b>后端代码</b></td><td>533 个 .go / 538,075 行</td><td>含 ANTLR4 自动生成的 MySQL/PostgreSQL 语法解析器，生成代码占比高；业务主逻辑约在 12 个 <code>api/*</code> 子域（358 个 .go）</td></tr>
+      <tr><td><b>前端代码</b></td><td>153 个 .vue / 42 个 .js / 135,519 行</td><td>其中 142 个 .vue 位于 <code>src/views/</code>，33 个视图子目录；另有 109 个 SVG 图标资源</td></tr>
+      <tr><td><b>接口规模</b></td><td>761 条路由注册</td><td>按 <code>router/</code> 目录 13 个文件中 GET/POST/PUT/DELETE/PATCH/Any 注册行统计；Swagger 文档仅覆盖 278 个 path / 342 个 operation，文档覆盖率约 45%</td></tr>
+      <tr><td><b>数据模型</b></td><td>64 个自动迁移实体</td><td>定义于 <code>pkg/db/migrate.go</code>；另有 <code>docs/sql/agent_tables.sql</code> 中 14 张需手工执行的 AI/智能体表</td></tr>
+      <tr><td><b>技术栈</b></td><td>Go 1.24 + Vue 3.5</td><td>Gin 1.11 / GORM 1.31 / MySQL / Redis / client-go 0.34；Vue3 + Element Plus 2.10 + Vuex 4 + ECharts 5 + xterm + Monaco</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>1.3 执行摘要</h3>
+  <p class="lead">天枢 AutoOps v4 是一个<strong>单体式、前后端分离、功能密度极高</strong>的企业级运维平台。它试图用一个 Go 进程 + 一个 Vue SPA 覆盖传统主机运维（CMDB、堡垒机、SSH 终端、脚本作业）、云原生运维（多集群 K8s 全资源控制台、Arthas 诊断）、数据运维（MySQL/PgSQL/Redis/MongoDB/ES 统一管理与 SQL 审计）、可观测性（Prometheus 告警引擎、探针、SNMP、域名/SSL/API 拨测、云账单）以及 AI 运维助手，并辅以 RBAC、审计录像、License 授权等企业特性。</p>
+  <div class="grid2">
+    <div class="panel gold"><h4 style="margin-top:0">最突出的三项优势</h4>
+      <ul style="font-size:13px">
+        <li><b>功能广度罕见</b>：12 个业务域、761 条接口，K8s 单模块即 159 条路由，覆盖节点/工作负载/网络/存储/YAML/日志流/容器终端/Arthas。</li>
+        <li><b>闭环能力强</b>：资产 → 凭据 → 作业 → 监控 → 告警 → 审计形成数据链，例如 CMDB 主机可被探针部署、任务执行、堡垒机授权、Prometheus 图表共同引用。</li>
+        <li><b>自研深度足够</b>：Redis 优先级任务队列、探针源码生成与交叉编译下发、Guacamole 协议代理、ANTLR SQL 解析器、模型签名增量迁移，均非简单 CRUD 拼装。</li>
+      </ul>
+    </div>
+    <div class="panel red"><h4 style="margin-top:0">最需要注意的三项约束</h4>
+      <ul style="font-size:13px">
+        <li><b>完成度参差</b>：AI 决策引擎为 TODO stub、知识库未接线、API 监控告警未发通知、部分前端流程库声明未使用。</li>
+        <li><b>安全基线偏弱</b>：JWT 密钥与 AES 密钥硬编码、配置含明文口令、后端无接口级 RBAC 与限流、CORS 全开。</li>
+        <li><b>工程一致性问题</b>：SQL 脚本与自动迁移表名不一致、AI 相关两套 Agent 概念混用、Swagger 覆盖率不足、生产 Nginx 代理配置缺失。</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note"><b>总体判断：</b>v4 已达到「功能演示 / 中小规模内部平台可用」的水准，具备很好的二次开发骨架；若用于生产或对客交付，建议先完成第 08 章列出的 P0 安全整改与 P1 功能闭环，再补齐自动化回归与文档。</div>
+</section>
+
+<!-- ======================= 2 ======================= -->
+<section id="s2">
+  <div class="sec-head"><div class="sec-no">02</div><h2>系统架构与技术栈</h2></div>
+  <div class="sec-desc">分层结构、启动编排、模块依赖与外部集成</div>
+
+  <h3>2.1 整体分层架构</h3>
+  <div class="panel" style="padding:14px">
+  <svg viewBox="0 0 1000 520" width="100%" role="img" aria-label="AutoOps v4 分层架构图" style="font-family:'PingFang SC','Microsoft YaHei',sans-serif">
+    <defs>
+      <linearGradient id="gn" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#102a54"/><stop offset="1" stop-color="#2c5aa0"/></linearGradient>
+      <linearGradient id="gg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b8911c"/><stop offset="1" stop-color="#e0c45e"/></linearGradient>
+      <marker id="ar" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c9a227"/></marker>
+    </defs>
+    <rect x="0" y="0" width="1000" height="520" fill="#fbfcfe" rx="10"/>
+    <!-- layer labels -->
+    <text x="16" y="30" font-size="12" fill="#8b97a8" font-weight="600" letter-spacing="1">接入层</text>
+    <rect x="95" y="12" width="880" height="56" rx="9" fill="url(#gn)"/>
+    <text x="115" y="36" font-size="13" fill="#ffffff" font-weight="600">Vue 3 SPA · Element Plus</text>
+    <text x="115" y="55" font-size="11" fill="#c8d7ee">66 条路由 / 153 组件 / ECharts · xterm · Monaco · Guacamole · asciinema</text>
+    <text x="760" y="45" font-size="11.5" fill="#e6d6a0">HTTP :8080 / WS 代理</text>
+    <line x1="500" y1="68" x2="500" y2="90" stroke="#c9a227" stroke-width="2" marker-end="url(#ar)"/>
+
+    <text x="16" y="112" font-size="12" fill="#8b97a8" font-weight="600" letter-spacing="1">网关层</text>
+    <rect x="95" y="90" width="880" height="46" rx="9" fill="#eef3fa" stroke="#d7e2f2"/>
+    <text x="115" y="118" font-size="12.5" fill="#102a54" font-weight="600">Gin Engine :8000</text>
+    <text x="265" y="118" font-size="11.5" fill="#41546f">Recovery · CORS · AccessLog · JWT(HS256) · License · 操作审计 · WebhookToken</text>
+    <text x="800" y="118" font-size="11" fill="#7b4bab">Swagger / WS</text>
+    <line x1="500" y1="136" x2="500" y2="158" stroke="#c9a227" stroke-width="2" marker-end="url(#ar)"/>
+
+    <text x="16" y="185" font-size="12" fill="#8b97a8" font-weight="600" letter-spacing="1">业务层</text>
+    <g font-size="11.5" fill="#102a54" font-weight="600" text-anchor="middle">
+      <rect x="95" y="158" width="135" height="34" rx="6" fill="#fff" stroke="#c9a227" stroke-width="1.5"/><text x="162" y="180">CMDB 资产</text>
+      <rect x="238" y="158" width="135" height="34" rx="6" fill="#fff" stroke="#c9a227" stroke-width="1.5"/><text x="305" y="180">K8s 多集群</text>
+      <rect x="381" y="158" width="135" height="34" rx="6" fill="#fff" stroke="#c9a227" stroke-width="1.5"/><text x="448" y="180">数据库管理</text>
+      <rect x="524" y="158" width="135" height="34" rx="6" fill="#fff" stroke="#c9a227" stroke-width="1.5"/><text x="591" y="180">监控告警</text>
+      <rect x="667" y="158" width="135" height="34" rx="6" fill="#fff" stroke="#c9a227" stroke-width="1.5"/><text x="734" y="180">任务 / 应用</text>
+      <rect x="810" y="158" width="165" height="34" rx="6" fill="#fff" stroke="#c9a227" stroke-width="1.5"/><text x="892" y="180">系统 / 配置 / 工具</text>
+      <rect x="95" y="199" width="200" height="34" rx="6" fill="#f6f0fb" stroke="#d9c4ee"/><text x="195" y="221" fill="#6b3fa0">AI 大模型对话</text>
+      <rect x="303" y="199" width="200" height="34" rx="6" fill="#f6f0fb" stroke="#d9c4ee"/><text x="403" y="221" fill="#6b3fa0">智能 Agent / 技能</text>
+      <rect x="511" y="199" width="200" height="34" rx="6" fill="#eef3fa" stroke="#d7e2f2"/><text x="611" y="221">巡检 / 性能分析</text>
+      <rect x="719" y="199" width="256" height="34" rx="6" fill="#eef3fa" stroke="#d7e2f2"/><text x="847" y="221">仪表盘聚合 / 通知 / 审计</text>
+    </g>
+    <text x="95" y="253" font-size="10.5" fill="#8b97a8">分层约定：controller → service → dao → model（部分模块无 dao）；db 模块按 mysql / unified / elasticsearch / mongo / redis 再分子包</text>
+    <line x1="500" y1="262" x2="500" y2="284" stroke="#c9a227" stroke-width="2" marker-end="url(#ar)"/>
+
+    <text x="16" y="310" font-size="12" fill="#8b97a8" font-weight="600" letter-spacing="1">设施层</text>
+    <g font-size="11.5" fill="#fff" font-weight="600" text-anchor="middle">
+      <rect x="95" y="284" width="170" height="38" rx="6" fill="#1b3f77"/><text x="180" y="308">MySQL · GORM 64 模型</text>
+      <rect x="273" y="284" width="170" height="38" rx="6" fill="#1b3f77"/><text x="358" y="308">Redis · 队列/缓存/会话</text>
+      <rect x="451" y="284" width="170" height="38" rx="6" fill="#1b3f77"/><text x="536" y="308">cron 调度器 · 任务队列</text>
+      <rect x="629" y="284" width="170" height="38" rx="6" fill="#1b3f77"/><text x="714" y="308">Prometheus / Pushgateway</text>
+      <rect x="807" y="284" width="168" height="38" rx="6" fill="#1b3f77"/><text x="891" y="308">SSH / WinRM / SNMP / WS</text>
+    </g>
+    <text x="95" y="340" font-size="10.5" fill="#8b97a8">迁移特色：对 64 个模型做「表名+字段签名」SHA256，未变化则跳过全量 information_schema 扫描；统一实例视图 db_instance_all 由 4 类实例 UNION ALL 生成</text>
+    <line x1="500" y1="348" x2="500" y2="370" stroke="#c9a227" stroke-width="2" marker-end="url(#ar)"/>
+
+    <text x="16" y="398" font-size="12" fill="#8b97a8" font-weight="600" letter-spacing="1">被管对象</text>
+    <g font-size="11" fill="#41546f" text-anchor="middle">
+      <rect x="95" y="370" width="138" height="40" rx="6" fill="#fff" stroke="#dde6f2"/><text x="164" y="388">Linux / Windows 主机</text><text x="164" y="402" font-size="9.5" fill="#8b97a8">探针 · node_exporter</text>
+      <rect x="241" y="370" width="138" height="40" rx="6" fill="#fff" stroke="#dde6f2"/><text x="310" y="388">K8s 集群</text><text x="310" y="402" font-size="9.5" fill="#8b97a8">client-go 0.34</text>
+      <rect x="387" y="370" width="138" height="40" rx="6" fill="#fff" stroke="#dde6f2"/><text x="456" y="388">5 家公有云</text><text x="456" y="402" font-size="9.5" fill="#8b97a8">ECS / DNS / CAS / Billing</text>
+      <rect x="533" y="370" width="138" height="40" rx="6" fill="#fff" stroke="#dde6f2"/><text x="602" y="388">数据库实例</text><text x="602" y="402" font-size="9.5" fill="#8b97a8">MySQL/Pg/Redis/Mongo/ES</text>
+      <rect x="679" y="370" width="138" height="40" rx="6" fill="#fff" stroke="#dde6f2"/><text x="748" y="388">网络设备</text><text x="748" y="402" font-size="9.5" fill="#8b97a8">SNMP v1/v2c/v3</text>
+      <rect x="825" y="370" width="150" height="40" rx="6" fill="#fff" stroke="#dde6f2"/><text x="900" y="388">Jenkins / LDAP</text><text x="900" y="402" font-size="9.5" fill="#8b97a8">飞书 / 钉钉 / 企微</text>
+    </g>
+    <rect x="95" y="428" width="880" height="72" rx="9" fill="url(#gg)" opacity="0.13"/>
+    <rect x="95" y="428" width="4" height="72" rx="2" fill="#c9a227"/>
+    <text x="115" y="450" font-size="12" fill="#7a6015" font-weight="700">关键运行机制</text>
+    <text x="115" y="470" font-size="11" fill="#6b5a20">探针：服务端生成 Go 源码 → GOOS/GOARCH 交叉编译 → SSH 下发 /opt/agent → systemd 托管 → :12580/metrics + 30s Pushgateway + 30s 心跳（免 JWT、Token 校验）</text>
+    <text x="115" y="489" font-size="11" fill="#6b5a20">任务：cron 加载 task_job → Enqueue 到 Redis List（high/normal/low/retry/failed）→ WorkerPool 按主机并发上限 5 消费 → SSE / WebSocket 推日志</text>
+  </svg>
+  </div>
+
+  <h3>2.2 技术栈清单</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:16%">层次</th><th style="width:30%">核心技术</th><th>在项目中的作用</th></tr></thead>
+    <tbody>
+      <tr><td><b>后端框架</b></td><td>Go 1.24 / Gin 1.11 / validator v10</td><td>HTTP 路由与参数校验；Validator 注册 JSON tag 作为错误字段名；Swagger 由 swaggo 生成</td></tr>
+      <tr><td><b>持久层</b></td><td>GORM 1.31 / MySQL 8 / go-redis v8</td><td>自动迁移 + 连接池 50/150；Redis 用于验证码、K8s 缓存、任务队列、AI 会话</td></tr>
+      <tr><td><b>云原生</b></td><td>k8s.io/client-go 0.34 / metrics</td><td>多集群资源读写、YAML、Pod 日志流、exec 终端、HPA 数据、Arthas 诊断</td></tr>
+      <tr><td><b>运维协议</b></td><td>x/crypto/ssh · sftp · gosnmp · masterzen/winrm · guacamole 协议自实现</td><td>WebSSH、文件传输、SNMP 采集、Windows PowerShell 远程、RDP 远程桌面</td></tr>
+      <tr><td><b>可观测</b></td><td>prometheus/client_golang · gopsutil · lego ACME</td><td>PromQL 查询、33 项自定义探针指标、证书自动申请与续期</td></tr>
+      <tr><td><b>云与协作 SDK</b></td><td>阿里云 / 腾讯云 / 华为云 / 百度云 / AWS SDK、LDAP v3、飞书 OAuth</td><td>五云主机同步、云账单、DNS 导入、SSL 证书、LDAP 登录、知识库代理</td></tr>
+      <tr><td><b>数据与工具</b></td><td>ANTLR4 SQL Parser · excelize · mongo-driver · base64Captcha · excelize</td><td>SQL 解析/格式化/预检查、Excel 批量导入导出、MongoDB 操作、登录验证码</td></tr>
+      <tr><td><b>前端</b></td><td>Vue 3.5 / Vue Router 4 / Vuex 4 / Element Plus 2.10 / axios</td><td>SPA + 动态菜单 + 指令式按钮权限；axios 统一补 <code>/api/v1</code> 前缀与 Bearer Token</td></tr>
+      <tr><td><b>前端交互</b></td><td>ECharts 5 · @xterm/xterm · Monaco · guacamole-common-js · asciinema-player</td><td>监控图表、Web 终端、SQL/YAML 编辑器、RDP 桌面、SSH 会话回放</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>2.3 启动编排与常驻任务</h3>
+  <p><code>main.go</code> 按固定顺序拉起全部子系统，退出时逆序优雅停止，是理解模块耦合关系的最佳入口：</p>
+  <div class="flow">
+    <div class="step"><b>1 配置加载</b><span><code>-c</code> 指定 yaml，默认 <code>./config.yaml</code></span></div><div class="arrow">›</div>
+    <div class="step"><b>2 基础设施</b><span>MySQL 自动迁移 → Redis（失败仅告警）→ SQL 记录控制器</span></div><div class="arrow">›</div>
+    <div class="step"><b>3 调度域</b><span>Scheduler Manager（云同步 + SSL 证书）→ 任务队列 → 域名巡检</span></div><div class="arrow">›</div>
+    <div class="step"><b>4 采集域</b><span>SNMP Manager → 智能 Agent 模块</span></div><div class="arrow">›</div>
+    <div class="step"><b>5 告警域</b><span>Prometheus 告警引擎 → API 监控调度器</span></div><div class="arrow">›</div>
+    <div class="step"><b>6 HTTP 服务</b><span>Gin 监听 <code>0.0.0.0:8000</code>，SIGINT 优雅关闭</span></div>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th style="width:24%">常驻调度器</th><th style="width:20%">周期</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td><code>scheduler.SyncScheduler</code></td><td>动态 cron（DB 配置）</td><td>按云厂商分组同步 ECS 主机，写同步日志与 <code>sys_activity_log</code></td></tr>
+      <tr><td><code>SslCertScheduler</code></td><td>每 2 分钟</td><td>轮询阿里云 CAS 申请中/验证中证书，自动添加 DNS 验证记录、下载签发证书</td></tr>
+      <tr><td><code>GlobalScheduler</code></td><td>按 <code>task_job</code> cron</td><td>定时任务触发后把子任务入 Redis 队列</td></tr>
+      <tr><td><code>TaskQueue</code></td><td>BRPop 5s / 重试 10s</td><td>优先级消费 + 双级并发锁（全局 50 / 单机 5）+ 失败重试 3 次</td></tr>
+      <tr><td><code>AlertScheduler</code></td><td>两个 30s ticker</td><td>同步策略规则 + 逐规则 PromQL 评估；并发 worker 检查</td></tr>
+      <tr><td><code>snmp.Manager</code></td><td>60s 采集 / 1min 重载</td><td>从 <code>cmdb_snmp_devices</code> 加载设备，20+ 指标推送 Pushgateway</td></tr>
+      <tr><td><code>AgentScheduler</code></td><td>任务队列扫描</td><td>20 个 worker、缓冲 1000 的任务通道，执行巡检等智能体任务</td></tr>
+      <tr><td><code>Domain/API Monitor</code></td><td>可配置 cron / 间隔</td><td>域名存活与 SSL 到期巡检、API 拨测（每 24h 清理历史结果）</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ======================= 3 ======================= -->
+<section id="s3">
+  <div class="sec-head"><div class="sec-no">03</div><h2>后端功能模块全景</h2></div>
+  <div class="sec-desc">12 个业务域的职责、端点规模、能力清单与代表性接口</div>
+
+  <h3>3.1 模块规模分布</h3>
+  <div class="bars">
+    <div class="bar-row"><div class="nm">monitor 监控中心</div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><div class="v">162</div></div>
+    <div class="bar-row"><div class="nm">k8s 容器管理</div><div class="bar-track"><div class="bar-fill" style="width:98%"></div></div><div class="v">159</div></div>
+    <div class="bar-row"><div class="nm">cmdb 资产管理</div><div class="bar-track"><div class="bar-fill" style="width:53%"></div></div><div class="v">86</div></div>
+    <div class="bar-row"><div class="nm">db 数据库管理</div><div class="bar-track"><div class="bar-fill" style="width:53%"></div></div><div class="v">86</div></div>
+    <div class="bar-row"><div class="nm">system 系统管理</div><div class="bar-track"><div class="bar-fill" style="width:49%"></div></div><div class="v">79</div></div>
+    <div class="bar-row"><div class="nm">app 应用发布</div><div class="bar-track"><div class="bar-fill" style="width:37%"></div></div><div class="v">60</div></div>
+    <div class="bar-row"><div class="nm">task 任务中心</div><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><div class="v">44</div></div>
+    <div class="bar-row"><div class="nm">configCenter 配置</div><div class="bar-track"><div class="bar-fill" style="width:20%"></div></div><div class="v">33</div></div>
+    <div class="bar-row"><div class="nm">tool 运维工具</div><div class="bar-track"><div class="bar-fill" style="width:13%"></div></div><div class="v">21</div></div>
+    <div class="bar-row"><div class="nm">agent 智能体</div><div class="bar-track"><div class="bar-fill g" style="width:7%"></div></div><div class="v">11</div></div>
+    <div class="bar-row"><div class="nm">ai 大模型</div><div class="bar-track"><div class="bar-fill g" style="width:5%"></div></div><div class="v">8</div></div>
+    <div class="bar-row"><div class="nm">dashboard 看板</div><div class="bar-track"><div class="bar-fill g" style="width:2%"></div></div><div class="v">3</div></div>
+    <div style="margin-top:12px;font-size:11.5px;color:var(--faint);border-top:1px dashed var(--line);padding-top:9px">另有 <code>router/router.go</code> 中 9 条公共路由（验证码、登录、Agent 心跳、飞书 OAuth 回调、系统自检、Webhook 接收、Swagger），合计 761 条。金色条为 AI/智能体与只读聚合模块。</div>
+  </div>
+
+  <div class="tw"><table>
+    <thead><tr><th style="width:13%">模块</th><th class="c" style="width:8%">Go 文件</th><th class="c" style="width:8%">端点</th><th style="width:22%">定位</th><th>一句话能力概括</th></tr></thead>
+    <tbody>
+      <tr><td><b>monitor</b></td><td class="c">75</td><td class="c">162</td><td>可观测性中枢</td><td>主机指标、探针、告警策略引擎、域名/SSL/API 拨测、故障、云账单、Zabbix 统计、通知机器人、Webhook</td></tr>
+      <tr><td><b>k8s</b></td><td class="c">31</td><td class="c">159</td><td>多集群控制台</td><td>集群/节点/命名空间/工作负载/网络/存储/配置全资源 CRUD + YAML + 日志流 + 容器终端 + Arthas</td></tr>
+      <tr><td><b>cmdb</b></td><td class="c">48</td><td class="c">86</td><td>资产与访问入口</td><td>主机台账、五云同步、JumpServer、Excel 导入、WebSSH/SFTP、堡垒机、SNMP/Windows 设备</td></tr>
+      <tr><td><b>db</b></td><td class="c">39</td><td class="c">86</td><td>数据库运维平台</td><td>MySQL/PgSQL/Redis/MongoDB/ES 实例管理、库表元数据、SQL 执行与审计、导入导出、统一实例视图</td></tr>
+      <tr><td><b>system</b></td><td class="c">53</td><td class="c">79</td><td>身份与合规</td><td>用户/角色/菜单/部门/岗位 RBAC、LDAP 登录、License、登录与操作日志、SSH 录像与命令审计</td></tr>
+      <tr><td><b>app</b></td><td class="c">17</td><td class="c">60</td><td>应用与发布</td><td>应用台账、Jenkins 集成、快速发布、服务上线工单审批、脚本上线工单、发布趋势</td></tr>
+      <tr><td><b>task</b></td><td class="c">21</td><td class="c">44</td><td>作业调度</td><td>脚本模板、定时任务、Redis 优先级队列、Ansible/K8s 作业、SSE/WebSocket 日志、队列监控</td></tr>
+      <tr><td><b>configcenter</b></td><td class="c">16</td><td class="c">33</td><td>凭据中心</td><td>主机凭据（4 种认证方式）、通用账号、云密钥（AES 加密）、定时同步计划</td></tr>
+      <tr><td><b>tool</b></td><td class="c">11</td><td class="c">21</td><td>工具门户</td><td>导航链接、16 类服务模板一键部署、飞书知识库代理与 OAuth</td></tr>
+      <tr><td><b>agent</b></td><td class="c">37</td><td class="c">11</td><td>AI 智能体</td><td>自然语言巡检、8 类技能、SSH 性能采集与 LLM 分析、巡检记录、对话历史</td></tr>
+      <tr><td><b>ai</b></td><td class="c">7</td><td class="c">8</td><td>大模型接入</td><td>模型 CRUD（阿里百炼 / DeepSeek / OpenAI 兼容）、非流式对话、三层会话记忆</td></tr>
+      <tr><td><b>dashboard</b></td><td class="c">3</td><td class="c">3</td><td>首页聚合</td><td>总览统计、业务分布、资产分类统计（纯只读，无数据表）</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>3.2 模块逐一详解</h3>
+  <p style="font-size:13px;color:var(--muted)">以下卡片按「定位 → 能力要点 → 代表性接口 → 关键源文件」组织，接口路径省略统一的 <code>/api/v1</code> 前缀（db 模块的 ES/Mongo/Redis 分组同样位于 <code>/api/v1</code> 下）。</p>
+
+  <div class="mods">
+    <div class="mod">
+      <div class="mod-h"><div class="ico">CM</div><div class="tt"><b>CMDB 资产管理</b><small>api/cmdb · 48 文件 · 能力最杂的模块</small></div><div class="cnt">86 API</div></div>
+      <div class="mod-b"><div class="pos">全平台资产主数据与远程访问入口，被探针部署、任务执行、堡垒机授权、监控图表共同引用。</div>
+        <ul>
+          <li>主机 CRUD、分组树、Excel 批量导入/模板、按名称/IP/状态检索、批量改组与删除</li>
+          <li><b>五云主机同步与创建</b>：阿里云 / 腾讯云 / 百度云 / 华为云 / AWS；JumpServer 同步；云主机统计</li>
+          <li>WebSSH 终端、远程命令、文件上传（异步任务）/下载/列目录</li>
+          <li>在线 SQL 执行（select/insert/update/delete/原生）与 <code>cmdb_sql_log</code> 操作留痕</li>
+          <li>SNMP 网络设备：立即采集、监控启停、CPU/内存、批量资源查询、设备 SSH</li>
+          <li>Windows Exporter：WinRM + PowerShell 安装/卸载/批量安装、30m/1d/7d 监控</li>
+          <li>堡垒机：用户组、主机授权/撤销、授权列表、权限校验</li>
+        </ul>
+        <div class="chips"><span class="chip">POST /cmdb/hostimport</span><span class="chip">POST /cmdb/hostsync</span><span class="chip">POST /cmdb/hostcloudcreateaws</span><span class="chip">GET /cmdb/hostssh/connect/:id</span><span class="chip">POST /cmdb/sql/execute</span><span class="chip">GET /bastion/user/check-permission</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　controller/cmdbHost.go · CmdbHostcloud.go · cmdbHostSSH.go · bastionHostAuthorization.go · windowsExporter.go／service/snmpMonitorService.go</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">K8</div><div class="tt"><b>Kubernetes 多集群管理</b><small>api/k8s · 31 文件 · 单模块最大路由</small></div><div class="cnt">159 API</div></div>
+      <div class="mod-b"><div class="pos">基于 client-go 0.34 实现近乎全资源类型的自研 Web 控制台，定位为 K8s Dashboard 的完整替代。</div>
+        <ul>
+          <li>集群 CRUD / 状态 / 详情 / 同步；多集群凭据统一纳管</li>
+          <li>节点：污点与标签、cordon/drain、资源分配、YAML 读写、监控</li>
+          <li>命名空间：ResourceQuota / LimitRange / 标签 / YAML</li>
+          <li>工作负载：Deployment 创建/伸缩/重启/回滚/暂停恢复/滚动状态、异常工作负载视图</li>
+          <li>Pod：实时日志 WebSocket 流、事件、容器内文件列/传/下、YAML 创建、Web 终端与临时调试容器</li>
+          <li>Service / Ingress（含后端连通性测试）/ PVC / PV / StorageClass / ConfigMap / Secret 全套 CRUD + YAML</li>
+          <li><b>Arthas Java 诊断</b>：进程列表、安装、dashboard/thread/jvm/memory、jad 反编译、火焰图、WS trace/watch/monitor</li>
+        </ul>
+        <div class="chips"><span class="chip">POST /k8s/cluster/:id/nodes/:n/drain</span><span class="chip">POST /k8s/.../deployments/:d/rollback</span><span class="chip">GET /k8s/.../pods/:p/logs/stream</span><span class="chip">GET /k8s/.../pods/:p/terminal</span><span class="chip">POST /k8s/cluster/:id/arthas/profiler/start</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　router/k8s/k8s.go（282 行）· controller/k8sterminal.go · arthas.go · model/kubeCluster.go（约 1860 行、上百个 DTO）</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">DB</div><div class="tt"><b>多类型数据库统一管理</b><small>api/db · 39 文件 · 5 个引擎子包</small></div><div class="cnt">86 API</div></div>
+      <div class="mod-b"><div class="pos">独立于 CMDB 的 DB 运维平台，按 mysql / unified / elasticsearch / mongo / redis 分包，路由自行挂载鉴权。</div>
+        <ul>
+          <li>MySQL / PgSQL 实例 CRUD、连接测试、库表元数据（列/索引/DDL/行数/状态/单行查询删除）</li>
+          <li>导入导出：CSV、SQL 脚本、整库结构、结构+数据，支持异步任务与文件下载</li>
+          <li>建库/建表/复制表、SQL 执行与 SQL 文件执行、SQL 模板、格式化与预检查、执行历史与统计</li>
+          <li>统一实例视图 <code>db_instance_all</code>（4 类实例 UNION ALL）、实例统计、敏感操作「获取密码」</li>
+          <li>ES 原生 API 全方法反向代理；MongoDB run-command/find/update/insert；Redis 扫描 key、info、cluster-info、TTL、原生命令</li>
+        </ul>
+        <div class="chips"><span class="chip">GET /db/databases/:id/ddl</span><span class="chip">POST /db/databases/exec-sql</span><span class="chip">POST /db/format-sql</span><span class="chip">POST /db/pre-check-sql</span><span class="chip">Any /elasticsearch/:id/proxy/*path</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　router/db/db.go · pkg/dbm/（多方言元数据层 + ANTLR4 MySQL/PostgreSQL 语法解析器）· docs/sql/create_view_db_instance_all.sql</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">MO</div><div class="tt"><b>监控告警中心</b><small>api/monitor · 75 文件 · 全仓最大模块</small></div><div class="cnt">162 API</div></div>
+      <div class="mod-b"><div class="pos">覆盖「采集 → 规则 → 告警记录 → 通知」全链路，并横向纳入域名、证书、故障、账单、拨测等运维周边。</div>
+        <ul>
+          <li>主机监控：Prometheus 单机/批量指标、TOP 使用率、指标历史、TOP 进程、端口信息</li>
+          <li><b>探针管理</b>：生成源码 → 交叉编译 → SSH 下发 → systemd 托管；部署/卸载/重启/状态/统计</li>
+          <li><b>告警引擎</b>：规则模板 + 策略 + 策略规则、PromQL 预览、连续触发防抖、指纹去重、静默、恢复通知、认领处理</li>
+          <li>域名监控：批量上传、阿里云 DNS 导入、存活/SSL 到期检查、定时巡检配置</li>
+          <li>SSL 证书：阿里云 CAS + ACME(lego) 申请、上传、DNS 验证、下载、SSH 部署到主机、部署日志</li>
+          <li>云账单：阿里云按产品/标签、腾讯云、AWS 汇率换算、12 个月趋势；Zabbix 告警统计</li>
+          <li>通知机器人 6 类（钉钉/飞书/企微/邮件/Webhook/Teams）、Webhook 接收与日志、API 监控拨测、7 模块健康自检</li>
+        </ul>
+        <div class="chips"><span class="chip">GET /monitor/hosts/top-usage</span><span class="chip">POST /monitor/alert/policies/preview</span><span class="chip">PUT /monitor/alert/records/:id/acknowledge</span><span class="chip">POST /monitor/ssl-cert/apply</span><span class="chip">GET /monitor/billing/last-12-months-trend</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　service/alert/{engine,eval,notify,process,scheduler}（6 文件 2338 行）· common/snmp/manager.go（1451 行）· common/agent/generator.go（1574 行）</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">SY</div><div class="tt"><b>系统管理与 RBAC</b><small>api/system · 53 文件</small></div><div class="cnt">79 API</div></div>
+      <div class="mod-b"><div class="pos">身份、组织、权限、审计与商业授权的统一入口。</div>
+        <ul>
+          <li>管理员 / 角色 / 菜单 / 部门 / 岗位 CRUD，角色权限分配与菜单树</li>
+          <li>登录验证码（base64Captcha + Redis，5 分钟）、登录日志、操作日志、系统动态日志</li>
+          <li>LDAP 配置 / 连接测试 / LDAP 登录</li>
+          <li>License 机器码 / 状态 / 激活（RSA 签名 + LicenseMiddleware 白名单）</li>
+          <li>SSH 会话录制（asciicast 回放/下载/批量删除）与命令审计（敏感命令计数、风险等级）</li>
+        </ul>
+        <div class="chips"><span class="chip">POST /login</span><span class="chip">GET /captcha</span><span class="chip">PUT /role/assignPermissions</span><span class="chip">POST /ldap/login</span><span class="chip">POST /license/activate</span><span class="chip">GET /recordings/:id/cast</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　controller/controller.go（登录）· sysRole.go · license.go · sysSessionRecording.go · common/util/recording/ · middleware/logMiddleware.go</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">AP</div><div class="tt"><b>应用管理与发布</b><small>api/app · 17 文件</small></div><div class="cnt">60 API</div></div>
+      <div class="mod-b"><div class="pos">把应用台账、Jenkins CI 与上线审批流程串成一条变更链。</div>
+        <ul>
+          <li>应用 CRUD、四层应用视图树 / 业务线服务树、应用级 Jenkins 环境配置</li>
+          <li>Jenkins 服务器管理、任务搜索、参数化构建、启停构建、构建日志</li>
+          <li>快速发布（创建 → 执行 → 级联删除子任务 → 日志/状态）</li>
+          <li>服务上线工单：创建 / 审批 / 运维发布 / 回归测试 / 操作权限校验 / Jenkins 日志</li>
+          <li>脚本上线工单：审核 / Jenkins 拉代码 / SSH 执行脚本 / 脚本输出 / 服务器文件列表与下载</li>
+          <li>上线趋势统计与部署发布历史</li>
+        </ul>
+        <div class="chips"><span class="chip">GET /apps/service-tree</span><span class="chip">POST /apps/deployment/quick</span><span class="chip">POST /apps/service-release/:id/approve</span><span class="chip">POST /apps/sh-release/execute-script</span><span class="chip">POST /jenkins/:id/jobs/:job/start</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　service/application.go（1488+ 行）· jenkins.go · service_release.go · sh_release.go · deploymentTrendController.go</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">TS</div><div class="tt"><b>任务中心与队列</b><small>api/task · 21 文件</small></div><div class="cnt">44 API</div></div>
+      <div class="mod-b"><div class="pos">脚本/命令模板 + 定时调度 + 自研 Redis 优先级队列 + Ansible/K8s 作业。</div>
+        <ul>
+          <li>模板 CRUD、按名称/类型查询、模板内容读取</li>
+          <li>任务 CRUD、列表关联详情、下次执行时间、执行信息、作业启停/日志/状态</li>
+          <li><b>任务监控</b>：队列指标、调度器统计、系统状态、清空失败队列、重试失败任务、定时任务暂停/恢复/重置</li>
+          <li>Ansible / K8s 任务创建、启动、级联删除、SSE 日志、WebSocket 日志流</li>
+          <li>队列实现：5 个 Redis List（high/normal/low/retry/failed）、BRPop 优先级消费、全局 50 / 单机 5 双级信号量、3 次重试</li>
+        </ul>
+        <div class="chips"><span class="chip">POST /task/add</span><span class="chip">GET /task/next-execution</span><span class="chip">GET /task/monitor/queue/metrics</span><span class="chip">POST /task/ansible/:id/start</span><span class="chip">WS /ws/task/ansible/:id/log/:work_id</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　service/taskQueue.go（617 行）· globalScheduler.go（569 行）· taskansible.go · controller/taskMonitor.go · websocket.go</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">CF</div><div class="tt"><b>配置中心（凭据）</b><small>api/configcenter · 16 文件</small></div><div class="cnt">33 API</div></div>
+      <div class="mod-b"><div class="pos">集中存放并加密各类连接凭据与云厂商 AK/SK，是云同步、SSH、DB 连接的凭据来源。</div>
+        <ul>
+          <li>ECS 认证凭据：密码 / 公钥 / 私钥 / 堡垒机 4 种认证方式</li>
+          <li>账号认证：密码解密、连接测试、按类型/别名查询</li>
+          <li>云密钥管理：密钥解密、统一云主机同步、按云厂商查询</li>
+          <li>定时同步配置：CRUD、启停、手动触发、调度器状态、同步日志</li>
+          <li>敏感字段落库使用 AES-256-CBC + 随机 IV + Base64 加密</li>
+        </ul>
+        <div class="chips"><span class="chip">POST /config/accountauth/decrypt</span><span class="chip">POST /config/keymanage/sync</span><span class="chip">POST /config/sync-schedule/trigger</span><span class="chip">GET /config/sync-schedule/log</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　service/keyManage.go（5 家云后台同步）· common/util/encryption.go · model/{ecsAuth,accountAuth,keyManage,syncSchedule}.go</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">TL</div><div class="tt"><b>运维工具门户</b><small>api/tool · 11 文件</small></div><div class="cnt">21 API</div></div>
+      <div class="mod-b"><div class="pos">轻量门户与知识入口，含基于模板的服务一键部署。</div>
+        <ul>
+          <li>常用导航链接 CRUD / 分页 / 全量</li>
+          <li>服务部署：16 类服务模板（01-nodejs … 16-loki，含 docker-compose / install.sh / deploy.sh），创建部署任务、历史/状态、卸载</li>
+          <li>飞书知识库：应用列表、token 诊断、Wiki 空间/节点树、文档内容、全文搜索</li>
+          <li>飞书 OAuth：授权链接、已授权用户、撤销授权（回调免 JWT）</li>
+        </ul>
+        <div class="chips"><span class="chip">GET /tool/services</span><span class="chip">POST /tool/deploy</span><span class="chip">GET /tool/feishu/spaces</span><span class="chip">GET /tool/feishu/search</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　controller/{tool,serviceDeploy,feishuDoc}.go · common/templates/services.json · common/util/feishu/{client,oauth}.go</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h ai-card"><div class="ico">AI</div><div class="tt"><b>AI 大模型接入</b><small>api/ai · 7 文件 · v4 新增</small></div><div class="cnt">8 API</div></div>
+      <div class="mod-b"><div class="pos">手写 REST 对接三种协议，模型配置存 <code>ai_model</code> 表，不走环境变量与第三方 LLM SDK。</div>
+        <ul>
+          <li>模型 CRUD、启用/禁用、分页筛选、已启用模型列表</li>
+          <li>协议分支：阿里百炼 DashScope 原生 / DeepSeek / OpenAI 兼容，<code>Authorization: Bearer</code></li>
+          <li><b>非流式对话</b>：<code>io.ReadAll</code> + 一次性 JSON 解析；<code>Stream</code> 字段仅透传上游未真正实现 SSE</li>
+          <li>Markdown 解析为 text / code / heading / list 四类内容块</li>
+          <li>三层会话记忆：进程内存（最近 6 轮）→ Redis（会话 5min / 结构化上下文 30min）→ DB 兜底</li>
+          <li>意图路由：历史类查询 / 转发智能 Agent / 通用问答；含指代消解与上下文摘要</li>
+        </ul>
+        <div class="chips"><span class="chip ai">POST /ai/chat</span><span class="chip ai">GET /ai/model/enabled</span><span class="chip ai">POST /ai/model/add</span><span class="chip ai">PUT /ai/model/updateStatus</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　controller/aiModelController.go（1409 行 / 39 函数）· service/aiModelService.go（641 行）· markdownParser.go · model/aiModel.go</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h ai-card"><div class="ico">AG</div><div class="tt"><b>智能 Agent（自然语言运维）</b><small>api/agent · 37 文件 · v4 新增</small></div><div class="cnt">11 API</div></div>
+      <div class="mod-b"><div class="pos">服务端进程内的自然语言智能体，通过 SSH 到目标主机执行检查与分析，与「主机探针 Agent」是两套体系。</div>
+        <ul>
+          <li>巡检任务 CRUD / 执行、巡检记录与检查项（command / metric / file / process 四类）</li>
+          <li>8 个已注册技能：压力、内存、目录深度、磁盘、CPU 分析 + 服务管理 + 命令/脚本执行</li>
+          <li>意图识别以关键词规则为主（故障/巡检/预测/命令/通用），实体抽取目标主机与检查类型</li>
+          <li><b>性能分析真实调用 LLM</b>：SSH 执行约 20 条 Linux 命令（top/free/df/ss/ps…）汇总后交模型生成瓶颈、根因、优化建议</li>
+          <li>AgentScheduler：20 worker、缓冲 1000 的任务通道；3 个内置 Prompt 模板</li>
+          <li>AI 对话、历史、清空；另有 4 组能力（故障分析、压力预警、知识库、Agent 任务）路由标注 TODO</li>
+        </ul>
+        <div class="chips"><span class="chip ai">POST /agent/chat</span><span class="chip ai">POST /agent/inspection/create</span><span class="chip ai">POST /agent/inspection/execute/:id</span><span class="chip ai">GET /agent/inspection/record/list</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　service/performanceAnalysisService.go（1627 行）· inspectionService.go（594 行）· chatService.go · scheduler.go · pkg/agent/skill/ · docs/sql/agent_tables.sql</div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-h"><div class="ico">DA</div><div class="tt"><b>首页仪表盘聚合</b><small>api/dashboard · 3 文件</small></div><div class="cnt">3 API</div></div>
+      <div class="mod-b"><div class="pos">纯只读跨模块统计，无写操作、无 DAO、无独立数据表。</div>
+        <ul>
+          <li>总览统计：主机 / K8s 集群 / 部署 / 任务 / 服务 / 数据库 6 类计数</li>
+          <li>业务分布统计：按业务线聚合</li>
+          <li>资产统计：按资产分类与细项聚合</li>
+          <li>首页另有告警、云账单、发布趋势、Zabbix 四类 ECharts 组件，数据来自 monitor / app 模块</li>
+        </ul>
+        <div class="chips"><span class="chip">GET /dashboard/stats</span><span class="chip">GET /dashboard/business-distribution</span><span class="chip">GET /dashboard/assets</span></div>
+      </div>
+      <div class="mod-f"><span class="lbl">关键文件</span>　controller/dashboard.go · service/dashboard.go · model1/dashboard.go（13 个统计结构体）</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 4 ======================= -->
+<section id="s4">
+  <div class="sec-head"><div class="sec-no">04</div><h2>前端功能地图与权限体系</h2></div>
+  <div class="sec-desc">菜单结构、页面分布、交互组件落点与三层权限控制</div>
+
+  <h3>4.1 菜单与路由结构</h3>
+  <p>侧边栏菜单<strong>不是前端静态配置</strong>：登录成功后后端下发 <code>leftMenuList</code>，前端写入 Vuex + localStorage，由 <code>Home.vue</code> 的 <code>el-menu</code> 渲染；路由中的 <code>meta.sTitle / tTitle</code> 只用于面包屑。全量 <strong>66 条有效路由</strong>（4 条根级 + 62 条业务子路由），按一级菜单归为 11 类：</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:14%">一级菜单</th><th class="c" style="width:8%">页面数</th><th>主要页面与路径</th></tr></thead>
+    <tbody>
+      <tr><td><b>仪表盘</b></td><td class="c">1</td><td>仪表盘 <code>/dashboard</code></td></tr>
+      <tr><td><b>容器管理</b></td><td class="c">13</td><td>集群管理 / 集群详情 / 节点详情 / 节点管理 / 命名空间 / 工作负载 / 网络管理 / 配置管理 / 存储管理 / 容器详情 / 容器终端 / 监控仪表板 / 应用诊断（Arthas）</td></tr>
+      <tr><td><b>资产管理</b></td><td class="c">9</td><td>主机管理 <code>/cmdb/ecs</code> / 网络设备 / 交换机监控 / Windows 监控 / 数据管理 / 终端登录 / 主机详情 / 网络设备终端 / RDP 远程桌面</td></tr>
+      <tr><td><b>数据管理</b></td><td class="c">4</td><td>数据库终端 / Redis 终端 / ES 终端 / MongoDB 终端</td></tr>
+      <tr><td><b>服务管理</b></td><td class="c">8</td><td>应用列表 / 应用视图 / 快速发布 / 发布模板 / 服务上线 / 工单详情 / 脚本上线 / 脚本上线详情</td></tr>
+      <tr><td><b>基础管理</b></td><td class="c">7</td><td>用户信息 / 角色信息 / 菜单信息 / 部门信息 / 用户组管理 / 主机授权 / 系统配置</td></tr>
+      <tr><td><b>监控中心</b></td><td class="c">6</td><td>域名监控 / 故障管理 / 告警规则 / 配置告警规则 / API 监控 / API 浏览</td></tr>
+      <tr><td><b>日志管理</b></td><td class="c">4</td><td>登录日志 / 操作日志 / 数据日志 / 会话录制</td></tr>
+      <tr><td><b>配置中心</b></td><td class="c">3</td><td>主机凭据 / 通用凭据 / 密钥管理</td></tr>
+      <tr><td><b>任务中心</b></td><td class="c">3</td><td>任务模版 / 任务作业 / Ansible 任务</td></tr>
+      <tr><td><b>运维工具</b></td><td class="c">4</td><td>工具列表 / Agent 列表 / <b>AI 助手</b> <code>/ops/ai</code> / 飞书文档</td></tr>
+      <tr><td>个人中心</td><td class="c">1</td><td>个人信息 <code>/system/personal</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>4.2 视图目录分布</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:22%">目录</th><th class="c" style="width:10%">文件数</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td><code>views/K8s/</code></td><td class="c">42</td><td>最大视图域：集群/节点/命名空间/工作负载/网络/配置/存储、Pod 详情与文件/事件/YAML/终端、Node 监控、Arthas 诊断</td></tr>
+      <tr><td><code>views/cmdb/</code></td><td class="c">29 + 17(Host) + 4(Network)</td><td>主机资产、网络/交换机、Windows 监控、四大 DB 终端、SSH/RDP 终端、文件管理、监控图表弹窗</td></tr>
+      <tr><td><code>views/monitor/</code></td><td class="c">19</td><td>告警规则与策略（4 个）、API 监控、故障、域名 SSL、ssl/ 子目录 9 个证书申请/上传/部署/日志页面</td></tr>
+      <tr><td><code>views/task/</code></td><td class="c">13</td><td>任务模板 / 作业 / Ansible；Job/ 下 10 个流程与日志组件</td></tr>
+      <tr><td><code>views/system/</code></td><td class="c">9</td><td>用户/角色/菜单/部门/用户组/系统配置/主机授权/个人信息 + 通知机器人管理</td></tr>
+      <tr><td><code>views/Tools/</code></td><td class="c">9</td><td>工具列表、Agent 管理、AI 助手页、飞书 Wiki、Agent 部署选主机、Docker 工具</td></tr>
+      <tr><td><code>views/app/</code> · <code>audit/</code> · <code>dashboard/</code></td><td class="c">8 / 4 / 5</td><td>发布流程页 / 审计日志与录像回放 / 首页看板与 4 个统计组件</td></tr>
+      <tr><td><code>views/work/</code></td><td class="c">8</td><td><span class="badge b-amber">遗留</span> 工单/CICD 流程页面，<b>未被任何路由引用</b>，且引用未声明的依赖与不存在的组件</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>4.3 可视化与交互组件落点</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:20%">组件库</th><th class="c" style="width:11%">使用文件数</th><th>实际用途</th></tr></thead>
+    <tbody>
+      <tr><td><b>ECharts 5</b></td><td class="c">12</td><td>首页告警/账单/发布/Zabbix 统计、主机 CPU/内存/磁盘/网络曲线、进程排行、交换机与 Windows 监控、Arthas 火焰图</td></tr>
+      <tr><td><b>xterm</b>（含 fit/attach/search）</td><td class="c">4</td><td>K8s Pod 容器终端、主机 SSH WebShell、网络设备 SSH 终端</td></tr>
+      <tr><td><b>Monaco Editor</b></td><td class="c">3</td><td>SQL 编辑器、YAML/代码编辑、飞书文档；webpack 插件仅打包 sql 语言以减小体积</td></tr>
+      <tr><td><b>Guacamole</b></td><td class="c">1</td><td>Windows 主机 RDP 远程桌面（后端自实现 guacd 协议代理）</td></tr>
+      <tr><td><b>asciinema-player</b></td><td class="c">1</td><td>SSH 会话录像回放（asciicast 格式，静态 vendor 引入）</td></tr>
+      <tr><td><b>highlight.js / js-yaml</b></td><td class="c">3 / 2</td><td>代码与凭据高亮、K8s YAML 解析生成</td></tr>
+      <tr><td><b>AntV X6 / LogicFlow / VueFlow</b></td><td class="c">0</td><td><span class="badge b-amber">声明未用</span> 仅在 package.json 中；实际任务流程由普通 Vue 组件按 steps 渲染</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>4.4 三层权限控制</h3>
+  <div class="grid3">
+    <div class="panel"><span class="badge b-blue">路由级</span><p style="font-size:12.8px"><code>router.beforeEach</code> 仅校验 token 与 sysAdmin 是否存在，未登录跳 <code>/login</code>；<b>不按角色动态过滤路由</b>。</p></div>
+    <div class="panel"><span class="badge b-teal">菜单级</span><p style="font-size:12.8px">后端登录响应下发 <code>leftMenuList</code>，前端只负责渲染；无权限菜单不出现在响应中，是主要的页面可见性控制。</p></div>
+    <div class="panel"><span class="badge b-gold">按钮级</span><p style="font-size:12.8px">自定义指令 <code>v-authority</code>，策略为<b>「可见但禁用」</b>：置灰 + 拦截点击并提示「没有该操作权限」。</p></div>
+  </div>
+  <div class="note"><b>后端侧：</b><code>jwtGroup</code> 统一挂载 AuthMiddleware + LicenseMiddleware + LogMiddleware，但 <b>AuthMiddleware 只验证 JWT 签名与有效期，不校验角色/菜单权限</b>；权限判定散落在业务代码中（如服务上线工单的操作权限、堡垒机主机授权）。db 模块例外：由 <code>db.InitDbRouter(router)</code> 自行建组挂载鉴权，不受 LicenseMiddleware 约束。</div>
+  <p>前端 <code>src/utils/request.js</code> 的请求拦截器会给所有非 <code>/api/v1</code> 开头的 URL 自动补前缀并注入 Bearer Token；响应 401/406 清 storage 跳登录。开发环境 <code>vue.config.js</code> 配置 <code>/api/v1 → http://127.0.0.1:8000</code> 代理并开启 WebSocket 透传，不做 pathRewrite。</p>
+</section>
+
+<!-- ======================= 5 ======================= -->
+<section id="s5">
+  <div class="sec-head"><div class="sec-no">05</div><h2>六大核心能力深挖</h2></div>
+  <div class="sec-desc">从功能清单进入实现机制：数据如何流转、协议如何落地、能力完成到哪一步</div>
+
+  <h3>5.1 多云资产纳管与远程访问链路</h3>
+  <p>这是全平台的数据基座。<code>configcenter</code> 提供加密凭据，<code>cmdb</code> 用它同步五云主机并落 <code>cmdb_host</code>，后续所有模块按主机 ID / IP 引用同一份资产：</p>
+  <div class="flow">
+    <div class="step"><b>凭据录入</b><span>ECS 认证 4 种方式 / 云 AK-SK，AES-256-CBC 加密落库</span></div><div class="arrow">›</div>
+    <div class="step"><b>云同步</b><span>手动 <code>/cmdb/hostsync</code> 或定时 cron，按厂商分组后台拉取 ECS</span></div><div class="arrow">›</div>
+    <div class="step"><b>资产归一</b><span>Excel 导入 / JumpServer 同步 / 分组树，写 <code>cmdb_host</code> + <code>cmdb_group</code></span></div><div class="arrow">›</div>
+    <div class="step"><b>访问与管控</b><span>WebSSH、SFTP、堡垒机授权、SQL 执行、会话录像与命令审计</span></div><div class="arrow">›</div>
+    <div class="step"><b>监控挂载</b><span>探针部署、SNMP 设备采集、Windows Exporter、Prometheus 图表</span></div>
+  </div>
+  <p>远程访问基于 <code>golang.org/x/crypto/ssh</code> + <code>pkg/sftp</code> 自建 <code>Terminal</code>（PTY + <code>WindowChange</code> 窗口自适应），WebSocket 支持 4 种取 token 方式：Bearer Header、查询参数（SSE 场景）、WS 升级参数、WS 首条 auth 消息。Windows 侧经 WinRM 执行 PowerShell 安装 exporter；RDP 则是后端自实现 Guacamole 协议（TCP 连 guacd → <code>6.select,3.rdp</code> → <code>7.connect</code> → 双向转发 WebSocket）。</p>
+
+  <h3>5.2 K8s 全资源控制台能力矩阵</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:18%">资源域</th><th>已实现操作</th><th style="width:16%">特色</th></tr></thead>
+    <tbody>
+      <tr><td><b>集群</b></td><td>CRUD / 状态 / 详情 / 同步、连接测试</td><td>多集群 + Redis 缓存</td></tr>
+      <tr><td><b>节点</b></td><td>列表 / 搜索 / 污点与标签 / cordon / drain / 资源分配 / YAML 读写 / 监控</td><td>节点级 YAML</td></tr>
+      <tr><td><b>命名空间</b></td><td>CRUD / YAML / 标签 / ResourceQuota / LimitRange</td><td>配额与默认值</td></tr>
+      <tr><td><b>工作负载</b></td><td>集群级与命名空间级列表、异常工作负载、Deployment 创建/伸缩/重启/回滚/暂停恢复/滚动状态</td><td>版本历史与回滚</td></tr>
+      <tr><td><b>Pod</b></td><td>详情 / 日志与 WebSocket 实时日志流 / 事件 / 容器内文件列-传-下 / YAML 读写 / Web 终端</td><td>临时调试容器</td></tr>
+      <tr><td><b>网络与存储</b></td><td>Service / Ingress / PVC / PV / StorageClass / ConfigMap / Secret 全套 CRUD + YAML</td><td>Ingress 后端连通性测试</td></tr>
+      <tr><td><b>诊断</b></td><td>Metrics（Pod/Node/NS）、Arthas Java 进程/线程/JVM/内存/反编译/火焰图/WS trace</td><td>Arthas 集成罕见</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>注意：</b>README 功能清单中「K8s 监控功能 / HPA 自动扩缩容 / 集群一键部署」标注为规划中；源码中已有 Metrics 查询能力，但没有 HPA 策略配置与集群部署编排接口。</div>
+
+  <h3>5.3 数据库统一管理：五引擎能力对照</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15%">引擎</th><th style="width:23%">实例管理</th><th>核心运维能力</th></tr></thead>
+    <tbody>
+      <tr><td><b>MySQL / PgSQL</b></td><td>CRUD、连接测试、库列表</td><td>表/列/索引/DDL/行数、建库建表复制表、SQL 与 SQL 文件执行、SQL 模板与历史、格式化与预检查、CSV/SQL/整库结构/结构+数据 同步与异步导入导出</td></tr>
+      <tr><td><b>Elasticsearch</b></td><td>CRUD、连接测试</td><td><code>Any(":id/proxy/*path")</code> 全方法反向代理原生 ES REST API</td></tr>
+      <tr><td><b>MongoDB</b></td><td>CRUD、库/集合列表</td><td>run-command、find、insert、update-by-id、delete-by-id</td></tr>
+      <tr><td><b>Redis</b></td><td>CRUD</td><td>全库/指定 DB 扫描 key、DB 列表、info / cluster-info、key 详情/TTL/内存占用、执行原生命令</td></tr>
+      <tr><td><b>统一视图</b></td><td><code>db_instance_all</code>（VIEW）</td><td>UNION ALL 四类实例，跨引擎实例列表与统计；敏感操作「获取实例密码」单独暴露</td></tr>
+    </tbody>
+  </table></div>
+  <p>底层 <code>pkg/dbm/</code> 是独立的多方言元数据层，含 ANTLR4 生成的 MySQL / PostgreSQL 语法解析器，用于 SQL 校验、格式化与预检查。<code>data/exports/</code> 中的 <code>mayfly-go_full_*.sql</code> 表明该模块由开源 DB 管理平台 mayfly-go 演进而来。需要强调的是：<strong>这里没有自然语言转 SQL（NL2SQL）能力</strong>，SQL 解析器是语法解析器而非 LLM 能力，SQL 编辑器由 Monaco 手写输入。</p>
+
+  <h3>5.4 自研任务队列机制</h3>
+  <div class="grid2">
+    <div class="panel"><h4 style="margin-top:0">队列拓扑</h4>
+      <div class="mono" style="font-size:12px;line-height:1.95;color:#3b4759">
+      cron / API 触发<br>
+      　↓ Enqueue<br>
+      dodevops:task_queue:{high, normal, low}<br>
+      　↓ BRPop(5s) 按优先级<br>
+      WorkerPool（CPU×2 workers）<br>
+      　├─ 全局信号量：并发上限 50<br>
+      　└─ 主机信号量：每台主机上限 5<br>
+      　↓ 失败<br>
+      retry 队列（retry_at +30s，10s 扫描）<br>
+      　↓ 超过 3 次<br>
+      failed 队列（可手动清空 / 重试）
+      </div>
+    </div>
+    <div class="panel"><h4 style="margin-top:0">关键参数与暴露能力</h4>
+      <div class="tw"><table style="margin:0;box-shadow:none">
+        <tbody>
+          <tr><td><b>MaxWorkers</b></td><td>NumCPU() × 2</td></tr>
+          <tr><td><b>MaxConcurrent</b></td><td>50（全局）</td></tr>
+          <tr><td><b>HostMaxConcurrent</b></td><td>5（单机）</td></tr>
+          <tr><td><b>MaxRetries / Delay</b></td><td>3 次 / 30 秒</td></tr>
+          <tr><td><b>消费者超时</b></td><td>5 秒</td></tr>
+          <tr><td><b>运维接口</b></td><td>队列指标、调度器统计、清空失败队列、重试失败任务、定时任务暂停/恢复/重置</td></tr>
+          <tr><td><b>日志通道</b></td><td>SSE + WebSocket 双通道，供 Ansible / K8s 作业实时输出</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <h3>5.5 可观测性全链路</h3>
+  <h4>采集侧：两套 Agent 务必区分</h4>
+  <div class="tw"><table>
+    <thead><tr><th style="width:16%">对比项</th><th style="width:42%">主机监控探针（monitor 模块）</th><th>AI 智能运维助手（api/agent）</th></tr></thead>
+    <tbody>
+      <tr><td><b>形态</b></td><td>被控端常驻 Go 二进制，由服务端生成源码、交叉编译、SSH 下发、systemd 托管</td><td>服务端进程内的自然语言智能体，不部署到被控机</td></tr>
+      <tr><td><b>交互</b></td><td>采集指标 → <code>:12580/metrics</code> + 30s Pushgateway + 30s 心跳</td><td>用户对话 → 意图/技能路由 → SSH 远程执行命令 → LLM 生成分析</td></tr>
+      <tr><td><b>数据表</b></td><td><code>monitor_agent</code>、<code>cmdb_snmp_devices</code></td><td><code>ai_agent_task</code>、<code>ai_agent_chat_history</code>、<code>knowledge_base</code>、<code>prompt_template</code></td></tr>
+      <tr><td><b>前端入口</b></td><td><code>/ops/agent</code>（Agent 列表与部署）</td><td><code>/ops/ai</code> + 全局 AI 抽屉 <code>AiChatDrawer.vue</code></td></tr>
+      <tr><td><b>免认证接口</b></td><td><code>POST /api/v1/monitor/agent/heartbeat</code>（Token 校验，5 分钟无心跳判离线）</td><td>无</td></tr>
+    </tbody>
+  </table></div>
+  <p>探针采集 <strong>33 个自定义指标</strong>（15s 间隔）：CPU 使用率/用户态/系统态/负载、内存与 Swap、磁盘容量与读写 IOPS、网络收发/TCP/UDP 连接、TOP5 进程 CPU/内存、端点探测、Ping、监听端口、systemd 服务资源占用、总进程数/运行天数/句柄数等。 SNMP 侧由 <code>common/snmp/manager.go</code> 每 60s 采集 20+ 指标，自动识别 Cisco/H3C/Huawei/HP/Dell/Juniper/Linux/Windows 私有 OID，支持 v1/v2c/v3。</p>
+
+  <h4>告警引擎：从 PromQL 到通知</h4>
+  <div class="flow">
+    <div class="step"><b>1 规则同步</b><span>每 30s 从 <code>monitor_alert_policy_rule</code> 加载启用规则</span></div><div class="arrow">›</div>
+    <div class="step"><b>2 PromQL 评估</b><span>并发 worker 查询 Prometheus，按 operator/threshold 比较生成异常点</span></div><div class="arrow">›</div>
+    <div class="step"><b>3 去重与防抖</b><span>7 个核心标签 MD5 指纹 + 连续触发次数窗口</span></div><div class="arrow">›</div>
+    <div class="step"><b>4 状态机</b><span>静默匹配、firing/resolved/acknowledged、恢复持续时长判定</span></div><div class="arrow">›</div>
+    <div class="step"><b>5 通知节流</b><span>静默期 / 重复间隔 / 最大次数，按严重度渲染模板并发送</span></div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><h4 style="margin-top:0">规则模型三代并存</h4>
+      <ul style="font-size:12.8px">
+        <li><b>AlertRule（旧版）</b>：<code>monitor_alert_rule</code>，自带 promql、阈值、静默期、重复间隔、cron 表达式</li>
+        <li><b>AlertRuleTemplate（指标字典）</b>：8 类 category（cpu/memory/load/disk/io/network/connection/service）+ metricKey/unit</li>
+        <li><b>AlertPolicy + AlertPolicyRule（当前引擎使用）</b>：策略管理机器人与通知节流，规则从模板导入并配置 operator、threshold、duration=60、continuousTimes</li>
+        <li><b>AlertRecord / AlertMute</b>：指纹唯一索引、认领处理、按规则/目标/时间段静默</li>
+      </ul>
+    </div>
+    <div class="panel"><h4 style="margin-top:0">通知渠道实现情况</h4>
+      <div class="tw"><table style="margin:0;box-shadow:none">
+        <thead><tr><th>渠道</th><th>告警引擎</th><th>其他链路</th></tr></thead>
+        <tbody>
+          <tr><td>钉钉</td><td><span class="badge b-green">支持</span>（HMAC 加签）</td><td>支持</td></tr>
+          <tr><td>飞书 / 企微</td><td><span class="badge b-green">支持</span></td><td>支持</td></tr>
+          <tr><td>通用 Webhook / Teams</td><td><span class="badge b-green">支持</span></td><td>支持</td></tr>
+          <tr><td>邮件</td><td><span class="badge b-red">不支持</span></td><td>域名巡检 / 机器人测试 / Webhook 转发各自用 net/smtp 实现</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:0">静默的 <code>LabelMatchers</code> 与周期性静默字段为空实现；无告警升级链，仅有 severity 分级与重复通知。</p>
+    </div>
+  </div>
+
+  <h3>5.6 AI 能力真实完成度</h3>
+  <p>v4 的 AI 相关代码分布在 <code>api/ai</code>（对话接入）、<code>api/agent</code>（技能与巡检）、<code>api/agent/service/performanceAnalysisService.go</code>（LLM 性能分析）三处。逐项核查后的结论：</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:26%">能力项</th><th style="width:13%">状态</th><th>源码依据与说明</th></tr></thead>
+    <tbody>
+      <tr><td>模型管理（3 种协议）</td><td><span class="badge b-green">已实现</span></td><td>阿里百炼 DashScope 原生、DeepSeek/OpenAI 兼容；模型配置存 <code>ai_model</code> 表，非环境变量</td></tr>
+      <tr><td>非流式对话 + Markdown 渲染</td><td><span class="badge b-green">已实现</span></td><td><code>AiChat</code> 一次性返回；前端 axios 超时 180s，渲染 text/code/heading/list 四类块</td></tr>
+      <tr><td>三层会话记忆与指代消解</td><td><span class="badge b-green">已实现</span></td><td>进程内存（6 轮）→ Redis（5min / 上下文 30min）→ <code>ai_agent_chat_history</code>；含「刚才/那个」类指代处理</td></tr>
+      <tr><td>LLM 性能瓶颈与根因分析</td><td><span class="badge b-green">已实现</span></td><td>SSH 采集约 20 条命令后调用首个启用模型，temperature 0.7、120s 超时，产出瓶颈/根因/建议/风险四段</td></tr>
+      <tr><td>本地技能路由（8 个 Skill）</td><td><span class="badge b-green">已实现</span></td><td><code>pkg/agent/skill</code> 统一接口 + Registry；关键词意图 → Validate → Execute，非 OpenAI function calling</td></tr>
+      <tr><td>智能巡检任务</td><td><span class="badge b-blue">部分实现</span></td><td>4 类检查项、5 类巡检类型、记录与检查项落库；AI 总结依赖的决策引擎为 stub</td></tr>
+      <tr><td>AI 决策引擎 / 意图识别器</td><td><span class="badge b-red">未完成</span></td><td><code>aiEngine.go</code> 的 <code>callAI</code> 直接返回「AI调用暂不可用，需要重构AI服务接口」，实际降级到关键词规则</td></tr>
+      <tr><td>知识库 / RAG</td><td><span class="badge b-red">未接线</span></td><td>有 <code>knowledge_base</code> 表、DAO、全文索引与 3 个 Prompt 模板，但 service/controller 零引用，路由为 TODO；前端 <code>/api/v1/knowledge/*</code> 后端无对应路由</td></tr>
+      <tr><td>流式输出（SSE）</td><td><span class="badge b-red">未实现</span></td><td><code>Stream</code> 字段透传上游，服务端却 <code>io.ReadAll</code> + JSON 解析；若上游返回 SSE 会解析失败</td></tr>
+      <tr><td>自然语言转 SQL / 告警升级 / API 拨测告警</td><td><span class="badge b-red">未实现</span></td><td>SQL 解析器与 LLM 无关；<code>apiMonitorScheduler.go</code> 的 <code>triggerAlert</code> 仅打日志并标注 TODO</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>结论：</b>v4 的 AI 是「可用的模型接入 + 规则驱动的运维技能 + 单点 LLM 性能分析」，<b>不是</b>完整的 AIOps 智能体闭环。README 中「AI 大模型分析功能」标注为规划中，与源码状态一致；v4 已提前落地了部分底座代码。</div>
+</section>
+
+<!-- ======================= 6 ======================= -->
+<section id="s6">
+  <div class="sec-head"><div class="sec-no">06</div><h2>数据模型与安全合规</h2></div>
+  <div class="sec-desc">64 个持久化实体、权限模型、审计链路与安全基线问题</div>
+
+  <h3>6.1 数据模型分布</h3>
+  <p><code>pkg/model/model.go</code> 只定义 <code>ExtraData</code> 辅助类型，业务实体全部下放到各模块 <code>model</code> 包，通过 <code>TableName()</code> 显式指定表名，并统一注册到 <code>pkg/db/migrate.go</code> 的 64 个模型清单：</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:16%">模块</th><th class="c" style="width:8%">实体数</th><th>主要表（结构化名 → 表名）</th></tr></thead>
+    <tbody>
+      <tr><td><b>monitor</b></td><td class="c">20</td><td>Agent→<code>monitor_agent</code>、Domain→<code>monitor_domain</code>、Incident→<code>monitor_incident</code>、SslCert→<code>monitor_ssl_cert</code>、AlertSource / AlertRule / AlertRecord / AlertMute / AlertRuleTemplate / AlertPolicy / AlertPolicyRule、NotifyRobot、WebhookLog、WebhookNotifyLog、APIBusinessFunction / APIMonitor / APIMonitorResult 等</td></tr>
+      <tr><td><b>system</b></td><td class="c">13</td><td>SysAdmin / SysRole / SysMenu / SysRoleMenu / SysAdminRole / SysDept / SysPost / SysConfig / SysLoginInfo / SysOperationLog / SysActivityLog / SysSessionRecording / SysCommandAudit</td></tr>
+      <tr><td><b>db</b></td><td class="c">9</td><td>DbInstance、Db、DbSql、DbSqlExec、ExportTask→<code>db_export_task</code>、UnifiedInstance（VIEW <code>db_instance_all</code>）、RedisInstance / MongoInstance / EsInstance</td></tr>
+      <tr><td><b>cmdb</b></td><td class="c">7</td><td>CmdbHost、CmdbGroup、CmdbSQL、CmdbSQLRecord→<code>cmdb_sql_log</code>、CmdbSnmpDevice、BastionUserGroup、BastionHostAuthorization</td></tr>
+      <tr><td><b>app</b></td><td class="c">7</td><td>Application、JenkinsEnv、QuickDeployment / QuickDeploymentTask、ServiceRelease / ServiceReleaseItem、ShRelease</td></tr>
+      <tr><td><b>task</b></td><td class="c">5</td><td>TaskTemplate、Task→<code>task_job</code>、TaskWork→<code>task_work</code>、TaskAnsible、TaskAnsibleWork</td></tr>
+      <tr><td><b>configcenter</b></td><td class="c">4</td><td>EcsAuth、AccountAuth、KeyManage、SyncSchedule</td></tr>
+      <tr><td><b>tool</b></td><td class="c">3</td><td>Tool→<code>tool_link</code>、ServiceDeploy、FeishuUserToken</td></tr>
+      <tr><td><b>ai / agent</b></td><td class="c">5</td><td>AiModel→<code>ai_model</code>、AgentTask→<code>ai_agent_task</code>、AgentChatHistory、KnowledgeBase、PromptTemplate</td></tr>
+      <tr><td><b>k8s</b></td><td class="c">1</td><td>KubeCluster→<code>k8s_cluster</code>（其余上百个结构体均为请求/响应 DTO，不持久化）</td></tr>
+    </tbody>
+  </table></div>
+  <div class="panel red"><b>模型层一致性风险：</b><code>docs/sql/agent_tables.sql</code> 定义了 14 张手工建表（inspection / incident / prediction / knowledge / alert 等），但其中只有 5 个模型注册在自动迁移清单中；脚本里的 <code>agent_task</code>、<code>alert_rule</code>、<code>alert_event</code> 与实际自动迁移的 <code>ai_agent_task</code>、<code>monitor_alert_rule</code>、<code>monitor_alert_record</code> 表名不同。同时 <code>data/exports/</code> 的历史快照仍含 <code>cmdb_sql_records</code>、<code>redis_instance</code> 等旧表，说明 schema 演进未完全收敛。<b>部署时必须明确：哪些表由 GORM 建、哪些需手工执行 SQL。</b></div>
+
+  <h3>6.2 认证、授权与审计</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:20%">机制</th><th style="width:28%">实现</th><th>评价</th></tr></thead>
+    <tbody>
+      <tr><td><b>JWT 认证</b></td><td>HS256，24h 有效，载荷为 <code>JwtAdmin</code>；Secret 硬编码为 <code>dodevops-api</code></td><td><span class="badge b-red">高风险</span> 密钥可预测，任何人可伪造管理员 Token</td></tr>
+      <tr><td><b>验证码</b></td><td>base64Captcha + RedisStore，key 前缀 <code>LOGIN_CODE</code>，5 分钟过期</td><td>实现完整</td></tr>
+      <tr><td><b>RBAC</b></td><td>五表模型 + 角色权限分配 + 动态菜单；<code>v-authority</code> 按钮置灰</td><td><span class="badge b-amber">中风险</span> 后端无接口级鉴权，绕过前端即可调用任意已认证接口</td></tr>
+      <tr><td><b>LDAP</b></td><td>配置 / 连接测试 / LDAP 登录（go-ldap/v3）</td><td>企业身份集成可用</td></tr>
+      <tr><td><b>商业授权</b></td><td>License 机器码 / 激活（RSA 签名）；LicenseMiddleware 三个白名单</td><td>db 模块路由游离于该中间件之外</td></tr>
+      <tr><td><b>操作审计</b></td><td>LogMiddleware 对非 GET 且认证成功的请求记录用户/方法/IP/URL/中文描述；描述字典由 Swagger 自动生成</td><td>覆盖面较好，但依赖 Swagger 描述覆盖率（约 45%）</td></tr>
+      <tr><td><b>SSH 审计</b></td><td>会话录制（asciicast 回放/下载）+ 命令审计（敏感命令计数、风险等级）</td><td>合规亮点</td></tr>
+      <tr><td><b>SQL 审计</b></td><td><code>cmdb_sql_log</code> 记录在线 SQL 执行</td><td>与 db 模块 <code>db_sql_exec</code> 是两套记录</td></tr>
+      <tr><td><b>限流</b></td><td>未发现任何限流中间件或依赖</td><td><span class="badge b-amber">中风险</span> 登录、解密、SQL 执行等敏感接口无速率保护</td></tr>
+      <tr><td><b>CORS</b></td><td><code>Allow-Origin: *</code> 且 <code>Allow-Credentials: true</code></td><td><span class="badge b-amber">中风险</span> 与凭据放行组合不规范</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>6.3 敏感信息处理</h3>
+  <div class="grid2">
+    <div class="panel gold"><h4 style="margin-top:0">已做的部分</h4><ul style="font-size:12.8px"><li>凭据字段 AES-256-CBC + PKCS7 + 随机 IV + Base64 加密落库</li><li>Webhook 接收使用独立 Token 校验（<code>X-Webhook-Token</code>）</li><li>Agent 心跳使用独立 Token，且为唯一免 JWT 的写入接口</li><li>飞书 OAuth token 单独存表，支持撤销</li></ul></div>
+    <div class="panel red"><h4 style="margin-top:0">需要整改的部分</h4><ul style="font-size:12.8px"><li><code>config.yaml</code> 明文写入 MySQL / Redis 密码、心跳 Token、Webhook Token</li><li>AES 密钥硬编码 <code>this-is-32-byte-key-for-aes-256!</code>，且提供解密接口 <code>/config/accountauth/decrypt</code></li><li>探针生成时把心跳 Token 编译进下发到各主机的二进制</li><li>认证中间件中有把 JWT Secret 打印到 stdout 的 DEBUG 日志</li><li>证书探测使用 <code>InsecureSkipVerify: true</code>（为读取过期证书，属合理取舍但需隔离）</li></ul></div>
+  </div>
+</section>
+
+<!-- ======================= 7 ======================= -->
+<section id="s7">
+  <div class="sec-head"><div class="sec-no">07</div><h2>部署、配置与运行</h2></div>
+  <div class="sec-desc">配置清单、容器化方式、端口与运行环境依赖</div>
+
+  <h3>7.1 后端配置（config.yaml）</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:22%">配置段</th><th style="width:32%">当前值 / 默认值</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>server.address</code></td><td><code>0.0.0.0:8000</code></td><td>HTTP 监听；<code>model: debug</code>、<code>enableSwagger: true</code></td></tr>
+      <tr><td><code>server.publicUrl</code></td><td><code>http://192.168.3.7:8080/</code></td><td>飞书 OAuth 回调前缀</td></tr>
+      <tr><td><code>db</code></td><td>MySQL <code>8.130.14.34:3306/gin-api</code></td><td>连接池 maxIdle 50 / maxOpen 150；<code>autoMigrate: true</code>（模型签名增量迁移）</td></tr>
+      <tr><td><code>redis</code></td><td><code>8.130.14.34:6379</code></td><td>初始化失败仅告警降级，系统继续启动</td></tr>
+      <tr><td><code>monitor.prometheus</code></td><td><code>http://8.130.14.34:9090</code></td><td>PromQL 查询；main.go 另有同地址硬编码 fallback</td></tr>
+      <tr><td><code>monitor.pushgateway</code></td><td><code>http://8.130.14.34:9091</code></td><td>探针 / SNMP / Windows Exporter 指标推送</td></tr>
+      <tr><td><code>monitor.agent</code></td><td>心跳 <code>127.0.0.1:8000</code> / Token <code>agent-heartbeat-token-2024</code></td><td>编译进下发的探针二进制</td></tr>
+      <tr><td><code>monitor.webhook</code></td><td>Token <code>webhook-notify-token-2024</code></td><td>配置为空时中间件直接跳过校验</td></tr>
+      <tr><td>结构体支持但 YAML 未配置</td><td><code>guacd</code>、<code>windows_exporter</code></td><td>RDP 桌面与 Windows 监控需手工补配置才能启用</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>配置注入方式：</b>后端只读 YAML，<code>common/config/config.go</code> 不读环境变量（唯一例外是被控端探针 <code>common/agent</code> 使用 <code>PUSHGATEWAY_URL</code>、<code>COLLECT_INTERVAL</code>、<code>HEARTBEAT_*</code> 等 7 个环境变量）。AI 模型的 API Key / Base URL / 模型名由用户在页面写入 MySQL，不走环境变量。</div>
+
+  <h3>7.2 容器化与运行入口</h3>
+  <div class="grid2">
+    <div class="panel"><h4 style="margin-top:0">后端镜像</h4>
+      <ul style="font-size:12.8px">
+        <li>基础镜像：私有 <code>golang:1.25-alpine</code>（amd64 / arm64 双 Dockerfile）</li>
+        <li>非多阶段构建：<b>复制预编译二进制 <code>devops</code></b>，另附 config.yaml、docs/、common/、上传模板 xlsx</li>
+        <li>镜像内安装 openssh-client、sshpass、curl、git、gcc，并 <code>pip install ansible-core==2.15.12</code> 供 Ansible 作业</li>
+        <li><code>GOPROXY=https://goproxy.cn,direct</code>、<code>TZ=Asia/Shanghai</code>、EXPOSE 8000</li>
+        <li>构建脚本：<code>CGO_ENABLED=0 GOOS=linux go build -o devops .</code> → docker build → push</li>
+      </ul>
+    </div>
+    <div class="panel"><h4 style="margin-top:0">前端镜像与代理</h4>
+      <ul style="font-size:12.8px">
+        <li>基础镜像：私有 nginx（amd64 / arm64 双 tag），仅 <code>COPY dist</code> 到 <code>/usr/share/nginx/html</code></li>
+        <li><span class="badge b-amber">缺口</span> 仓库内<b>没有生产 nginx.conf</b>，<code>/api/v1</code> 的反向代理只在开发 <code>vue.config.js</code> 中定义；生产需依赖基础镜像内置配置或集群 Ingress</li>
+        <li>开发代理：<code>/api/v1 → http://127.0.0.1:8000</code>，<code>changeOrigin</code> + <code>ws: true</code>，不做 pathRewrite</li>
+        <li>构建：<code>vue-cli-service build</code>，publicPath <code>/</code>，关闭 sourcemap，Monaco 只打包 sql 语言</li>
+      </ul>
+    </div>
+  </div>
+  <p>仓库根 <code>docker/</code> 与 README 提供一键部署脚本（<code>./devops-start.sh v5.0 &lt;ip&gt; 8080</code>），镜像组合包含 MySQL、Redis、VictoriaMetrics、VictoriaLogs、Kafka、Vector；但这是<b>主线 v5 的部署形态</b>，v4 源码内的 <code>config.yaml</code> 仍指向单机 Prometheus + Pushgateway。若按 v4 源码重建环境，请以本章配置表为准。</p>
+
+  <h3>7.3 外部依赖清单</h3>
+  <div class="tagline">
+    <span class="tag">MySQL 8（必需）</span><span class="tag">Redis 6+（队列必需，降级影响功能）</span><span class="tag">Prometheus（监控/告警）</span><span class="tag">Pushgateway（探针指标）</span><span class="tag">guacd（RDP，需额外部署）</span><span class="tag">Jenkins（发布）</span><span class="tag">LDAP（可选登录）</span><span class="tag">K8s 集群 kubeconfig</span><span class="tag">五云 AK/SK</span><span class="tag">阿里云 DNS / CAS</span><span class="tag">ACME 账户（可选）</span><span class="tag">飞书应用（可选）</span><span class="tag">SMTP（邮件通知）</span><span class="tag">Ansible（作业）</span>
+  </div>
+  <p style="font-size:13px;color:var(--muted)">除 MySQL / Redis / Prometheus 的地址写在 <code>config.yaml</code>，其余集成（Jenkins、LDAP、云密钥、SSH 目标主机、通知机器人）均由数据库配置在运行时动态提供，这也是该平台「配置驱动」的设计特点。</p>
+</section>
+
+<!-- ======================= 8 ======================= -->
+<section id="s8">
+  <div class="sec-head"><div class="sec-no">08</div><h2>质量评估与改进建议</h2></div>
+  <div class="sec-desc">能力完成度评分、源码核查发现的问题清单、分阶段整改路线</div>
+
+  <h3>8.1 能力完成度评估</h3>
+  <p>基于源码实现状态（非 README 宣称）给出的主观评分，用于判断各域的可交付程度：</p>
+  <div class="panel">
+    <div class="score"><div class="lb">CMDB 与多云纳管</div><div class="tr"><div class="fl" style="width:90%"></div></div><div class="vv">90</div></div>
+    <div class="score"><div class="lb">K8s 资源管理</div><div class="tr"><div class="fl" style="width:88%"></div></div><div class="vv">88</div></div>
+    <div class="score"><div class="lb">数据库统一管理</div><div class="tr"><div class="fl" style="width:85%"></div></div><div class="vv">85</div></div>
+    <div class="score"><div class="lb">任务调度与作业</div><div class="tr"><div class="fl" style="width:82%"></div></div><div class="vv">82</div></div>
+    <div class="score"><div class="lb">应用发布与工单</div><div class="tr"><div class="fl" style="width:78%"></div></div><div class="vv">78</div></div>
+    <div class="score"><div class="lb">监控采集与告警</div><div class="tr"><div class="fl g" style="width:72%"></div></div><div class="vv">72</div></div>
+    <div class="score"><div class="lb">权限与审计合规</div><div class="tr"><div class="fl g" style="width:62%"></div></div><div class="vv">62</div></div>
+    <div class="score"><div class="lb">AI / 智能体闭环</div><div class="tr"><div class="fl r" style="width:42%"></div></div><div class="vv">42</div></div>
+    <div class="score"><div class="lb">工程一致性与文档</div><div class="tr"><div class="fl r" style="width:48%"></div></div><div class="vv">48</div></div>
+    <div style="margin-top:12px;font-size:11.5px;color:var(--faint);border-top:1px dashed var(--line);padding-top:9px">评分为静态源码分析结论，未做运行时压测与渗透测试；深蓝 ≥80 表示可直接使用，金色 60-79 表示可用但需补强，深红 &lt;60 表示存在明显缺口。</div>
+  </div>
+
+  <h3>8.2 问题清单（按优先级）</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:6%" class="c">级别</th><th style="width:24%">问题</th><th style="width:34%">源码证据</th><th>建议</th></tr></thead>
+    <tbody>
+      <tr><td class="c"><span class="badge b-red">P0</span></td><td>JWT Secret 硬编码可伪造管理员</td><td><code>pkg/jwt/jwt.go</code> <code>Secret = []byte("dodevops-api")</code>，24h 有效；authMiddleware 有打印 Secret 的 DEBUG 日志</td><td>改为环境变量/密钥管理服务注入，删除日志，增加 Token 撤销名单</td></tr>
+      <tr><td class="c"><span class="badge b-red">P0</span></td><td>后端无接口级 RBAC</td><td>middleware 目录仅校验 Token 有效性，无角色/菜单判定；权限散落在业务代码</td><td>引入 casbin 或统一 URL-角色中间件，敏感写接口强制二次校验</td></tr>
+      <tr><td class="c"><span class="badge b-red">P0</span></td><td>AES 密钥硬编码 + 解密接口暴露</td><td><code>common/util/encryption.go</code> 硬编码 32 字节密钥；<code>/config/accountauth/decrypt</code>、<code>/config/keymanage/decrypt</code></td><td>密钥外置 + KMS；解密操作加审批与审计、按最小权限返回</td></tr>
+      <tr><td class="c"><span class="badge b-red">P0</span></td><td>配置文件含明文生产口令</td><td><code>config.yaml</code> 内 MySQL/Redis 密码与两个 Token 明文</td><td>配置外置为 Secret / 环境变量，仓库仅保留 example</td></tr>
+      <tr><td class="c"><span class="badge b-amber">P1</span></td><td>AI 决策引擎为 stub</td><td><code>api/agent/service/aiEngine.go</code> <code>callAI</code> 返回「AI调用暂不可用」</td><td>复用 <code>aiModelService</code> 的 Chat 接口统一收口，删除第二套 LLM 调用</td></tr>
+      <tr><td class="c"><span class="badge b-amber">P1</span></td><td>知识库 / Prompt 未接线</td><td>表、DAO、全文索引齐备但 service/controller 零引用；前端 <code>/api/v1/knowledge/*</code> 后端无路由</td><td>补路由并接入 Prompt 拼装，或明确下线前端入口</td></tr>
+      <tr><td class="c"><span class="badge b-amber">P1</span></td><td>API 监控告警未闭环</td><td><code>apiMonitorScheduler.go</code> <code>triggerAlert</code> 仅日志 + TODO</td><td>复用 <code>alert/notify</code> 通知器，统一告警入口</td></tr>
+      <tr><td class="c"><span class="badge b-amber">P1</span></td><td>SSL 脚本与自动迁移表名冲突</td><td><code>docs/sql/agent_tables.sql</code> 14 张表仅 5 个模型注册迁移；<code>agent_task</code> vs <code>ai_agent_task</code> 等命名不一致</td><td>统一 DDL 为唯一真相源，补启动自检与迁移测试</td></tr>
+      <tr><td class="c"><span class="badge b-amber">P1</span></td><td>生产 Nginx 代理配置缺失</td><td>前端 Dockerfile 只 COPY dist，无 nginx.conf；代理仅存在于 <code>vue.config.js</code></td><td>镜像内补 <code>proxy_pass /api/v1</code> 与 WS Upgrade 头</td></tr>
+      <tr><td class="c"><span class="badge b-amber">P1</span></td><td>无限流、CORS 全开</td><td>middleware 无 limiter；Cors 为 <code>Allow-Origin: *</code> + Credentials true</td><td>登录/解密/SQL 执行加限流；收敛白名单域名</td></tr>
+      <tr><td class="c"><span class="badge b-blue">P2</span></td><td>Swagger 覆盖率约 45%</td><td>761 条路由注册 vs swagger.json 278 paths / 342 operations</td><td>补注解并纳入 CI 校验，操作审计描述字典也随之完整</td></tr>
+      <tr><td class="c"><span class="badge b-blue">P2</span></td><td>前端流程库声明未使用 / 遗留目录</td><td>X6、LogicFlow、@braks/vue-flow 仅在 package.json；<code>views/work/</code> 无路由引用且引用缺失依赖</td><td>清理依赖与死代码，降低构建体积与维护困惑</td></tr>
+      <tr><td class="c"><span class="badge b-blue">P2</span></td><td>两套 Agent 概念混用</td><td><code>api/agent</code>（AI 助手）与 <code>api/monitor/service/agent.go</code>（探针）命名冲突</td><td>重命名为 <code>aiops</code> / <code>probe</code>，统一术语与文档</td></tr>
+      <tr><td class="c"><span class="badge b-blue">P2</span></td><td>重复鉴权与 db 路由游离</td><td>app/k8s/task 在 jwtGroup 已鉴权后逐条再挂 AuthMiddleware；db 自建组不受 License 约束</td><td>收敛到统一中间件链，减少重复 JWT 解析</td></tr>
+      <tr><td class="c"><span class="badge b-blue">P2</span></td><td>env 配置错位</td><td>前端 <code>env</code> 无点前缀且未被引用；<code>src/.env</code> 位置与写法不符合 Vue CLI 规范，而 <code>storage.js</code> 依赖 <code>VUE_APP_NAME_SPACE</code></td><td>统一到项目根 <code>.env.*</code>，补默认值兜底</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>8.3 建议的整改路线</h3>
+  <div class="flow">
+    <div class="step" style="border-top-color:var(--red)"><b>阶段一 · 安全基线（P0）</b><span>密钥外置、RBAC 中间件、限流与 CORS 收敛、删除敏感日志、解密接口加审计。目标是消除可直接利用的越权路径。</span></div>
+    <div class="step" style="border-top-color:var(--gold)"><b>阶段二 · 功能闭环（P1）</b><span>统一 LLM 调用入口、接通知识库与告警通知、统一 DDL 与迁移、补生产 Nginx 代理配置。</span></div>
+    <div class="step" style="border-top-color:var(--teal)"><b>阶段三 · 工程治理（P2）</b><span>Swagger 全量注解、死代码清理、术语统一、CI 加构建与静态检查、补集成测试与部署文档。</span></div>
+  </div>
+</section>
+
+<!-- ======================= 9 ======================= -->
+<section id="s9">
+  <div class="sec-head"><div class="sec-no">09</div><h2>结论</h2></div>
+  <div class="sec-desc">适用场景、总体评价与二次开发建议</div>
+  <div class="panel gold">
+    <p class="lead">天枢 AutoOps v4 的价值不在于某一项技术做到极致，而在于<strong>把运维日常需要的十几个系统压进同一个进程和同一套资产模型</strong>。533 个 Go 文件、761 条接口、64 张表构成的骨架里，CMDB、K8s、数据库、任务、监控告警五个域都达到了「功能完整、可直接演示、可继续开发」的水准；Jenkins 发布与工单审批、SSH 会话录像、探针自动编译下发、Arthas 集成等属于同类开源项目中较少见的深度实现。</p>
+    <p>另一方面，v4 明显带着「快速迭代堆叠」的痕迹：AI 域只有接入层和单点分析真正跑通，决策引擎、知识库、API 告警仍是占位；安全基线停留在「能用」而非「可交付」；SQL 脚本、环境变量、流程库、Swagger 文档都存在未收敛的残留。它更像一个功能丰富的<strong>二次开发起点</strong>，而不是开箱即用的生产级平台。</p>
+  </div>
+  <div class="grid3">
+    <div class="panel"><span class="badge b-green">适合</span><p style="font-size:12.8px">中小企业混合环境（VM + K8s）统一运维入口；内部工具整合与 POC 演示；有 Go/Vue 团队、希望以开源代码为骨架定制的场景。</p></div>
+    <div class="panel"><span class="badge b-amber">需评估</span><p style="font-size:12.8px">对合规、审计、权限隔离要求严格的行业；大规模多集群生产托管；需要 HA / 多租户 / 完整 AIOps 闭环的场景。</p></div>
+    <div class="panel"><span class="badge b-blue">建议路径</span><p style="font-size:12.8px">先按第 08 章阶段一完成安全整改，再以 CMDB → 任务 → 监控 为主链打通回归测试，最后决定是否投入 AI 域的完整重构。</p></div>
+  </div>
+  <p style="margin-top:20px"><b>与主线版本的关系：</b>仓库 README 已指向 v5.0 镜像与 VictoriaMetrics / Kafka / Vector 等新组件，v4 是 2026-09-17 的源码快照。若目标是评估「当前可用版本」，建议同时拉取主线最新代码做差异比对；若目标是学习架构与复用模块，v4 的完整源码已经足够。</p>
+</section>
+
+<!-- ======================= 10 ======================= -->
+<section id="s10">
+  <div class="sec-head"><div class="sec-no">10</div><h2>附录：统计口径与核查方法</h2></div>
+  <div class="sec-desc">数据如何得来、哪些结论是静态推断、可复核的文件入口</div>
+
+  <h3>10.1 统计口径</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:24%">指标</th><th style="width:16%">数值</th><th>统计方法</th></tr></thead>
+    <tbody>
+      <tr><td>v4 文件总数</td><td>972</td><td><code>find v4 -type f | wc -l</code>（不含目录）</td></tr>
+      <tr><td>后端 .go 文件 / 行数</td><td>533 / 538,075</td><td><code>find autoops-api-v4 -name "*.go"</code>，行数含 ANTLR 生成代码</td></tr>
+      <tr><td>前端 .vue / .js 行数</td><td>153 / 42 / 135,519</td><td><code>src/</code> 下 .vue 与 .js 全量拼接统计</td></tr>
+      <tr><td>HTTP 路由注册</td><td>761</td><td><code>router/</code> 下 13 个 .go 文件内 <code>.GET/.POST/.PUT/.DELETE/.PATCH/.Any(</code> 出现次数求和（含公共路由 9 条，含重复注册的方法调用，故与实际唯一端点数略有出入）</td></tr>
+      <tr><td>Swagger 文档</td><td>278 paths / 342 ops / 313 defs</td><td>解析 <code>docs/swagger.json</code> 的 paths 与 definitions</td></tr>
+      <tr><td>GORM 模型</td><td>64</td><td><code>pkg/db/migrate.go</code> 中 <code>models</code> 数组元素数</td></tr>
+      <tr><td>前端路由</td><td>66 条 / 11 类一级菜单</td><td><code>src/router/</code> 有效路由记录与 <code>meta.sTitle</code> 去重统计</td></tr>
+      <tr><td>探针指标</td><td>33 个自定义指标</td><td><code>common/agent/agent.go</code> 中 Prometheus Registry 注册项</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>10.2 各模块端点明细</h3>
+  <div class="tw"><table>
+    <thead><tr><th>路由文件</th><th class="c">端点数</th><th>路由文件</th><th class="c">端点数</th></tr></thead>
+    <tbody>
+      <tr><td><code>router/monitor/monitor.go</code></td><td class="c">162</td><td><code>router/task/task.go</code></td><td class="c">44</td></tr>
+      <tr><td><code>router/k8s/k8s.go</code></td><td class="c">159</td><td><code>router/configCenter/configCenter.go</code></td><td class="c">33</td></tr>
+      <tr><td><code>router/cmdb/cmdb.go</code></td><td class="c">86</td><td><code>router/tool/tool.go</code></td><td class="c">21</td></tr>
+      <tr><td><code>router/db/db.go</code></td><td class="c">86</td><td><code>router/agent/agent.go</code></td><td class="c">11</td></tr>
+      <tr><td><code>router/system/system.go</code></td><td class="c">79</td><td><code>router/router.go</code>（公共）</td><td class="c">9</td></tr>
+      <tr><td><code>router/app/application.go</code></td><td class="c">60</td><td><code>router/ai/ai.go</code></td><td class="c">8</td></tr>
+      <tr><td><code>router/dashboard/dashboard.go</code></td><td class="c">3</td><td><b>合计</b></td><td class="c"><b>761</b></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>10.3 关键文件核查入口</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:34%">用途</th><th>文件路径（相对 <code>AutoOps/v4/</code>）</th></tr></thead>
+    <tbody>
+      <tr><td>后端启动编排</td><td><code>autoops-api-v4/main.go</code></td></tr>
+      <tr><td>统一路由与中间件挂载</td><td><code>autoops-api-v4/router/router.go</code></td></tr>
+      <tr><td>模型迁移清单 / 统一实例视图</td><td><code>autoops-api-v4/pkg/db/migrate.go</code></td></tr>
+      <tr><td>依赖版本</td><td><code>autoops-api-v4/go.mod</code> · <code>autoops-web-v4/package.json</code></td></tr>
+      <tr><td>运行配置</td><td><code>autoops-api-v4/config.yaml</code> · <code>common/config/config.go</code></td></tr>
+      <tr><td>任务队列 / 全局调度</td><td><code>autoops-api-v4/api/task/service/{taskQueue,globalScheduler}.go</code></td></tr>
+      <tr><td>告警引擎</td><td><code>autoops-api-v4/api/monitor/service/alert/{engine,scheduler,eval,process,notify}/</code></td></tr>
+      <tr><td>探针生成器 / SNMP 管理器</td><td><code>autoops-api-v4/common/agent/generator.go</code> · <code>common/snmp/manager.go</code></td></tr>
+      <tr><td>AI 对话与智能体</td><td><code>autoops-api-v4/api/ai/controller/aiModelController.go</code> · <code>api/agent/service/{chatService,performanceAnalysisService}.go</code></td></tr>
+      <tr><td>AI 手工建表脚本</td><td><code>autoops-api-v4/docs/sql/agent_tables.sql</code></td></tr>
+      <tr><td>前端路由 / 权限 / 请求封装</td><td><code>autoops-web-v4/src/router/router.js</code> · <code>src/permission/</code> · <code>src/utils/request.js</code></td></tr>
+      <tr><td>前端设计规范</td><td><code>autoops-web-v4/docs/ui-design-patterns.md</code>（1094 行 / 16 章，供 AI 生成 UI 参考）</td></tr>
+      <tr><td>API 文档</td><td><code>autoops-api-v4/docs/swagger.json</code> · <code>swagger.yaml</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>10.4 分析边界声明</h3>
+  <div class="note" style="margin-bottom:0">
+    本报告为<b>静态源码分析</b>：通过目录遍历、路由注册提取、依赖清单解析、关键文件通读与交叉检索得出结论，<b>未编译、未启动、未连接任何外部服务、未做运行时验证与渗透测试</b>。因此：
+    <ul style="font-size:12.8px;margin:8px 0 0 18px">
+      <li>「功能已实现」指存在完整调用链代码，不代表在真实环境中一定可正常运行；</li>
+      <li>「未完成」指存在 TODO / stub / 空实现或路由缺失，不排除存在未检索到的旁路实现；</li>
+      <li>端点数按源码注册行统计，与实际去重后的可访问 URI 可能有少量差异；</li>
+      <li>完成度评分为分析判断，非量化测试结果，仅供优先级排序参考。</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <div><b>天枢 AutoOps v4 · 源码功能分析报告</b><br>分析对象 opsre/AutoOps @ main/v4 · Commit 7bdd4f8 · 生成于 2026-11-06</div>
+    <div style="text-align:right">本地源码：<code>AutoOps/v4/</code><br>报告文件：<code>AutoOps-v4-功能分析报告.html</code><br>单文件离线报告 · 无外部依赖</div>
+  </div>
+</section>
+
+</main>
+</div>
+<div id="top" title="回到顶部">↑</div>
+<script>
+(function(){
+  var bar=document.getElementById('progress'), top=document.getElementById('top');
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    var p=h>0?(window.scrollY/h)*100:0; bar.style.width=p+'%';
+    top.style.display=window.scrollY>500?'flex':'none';
+    var secs=document.querySelectorAll('section'), cur='';
+    secs.forEach(function(s){ if(s.getBoundingClientRect().top<=140) cur=s.id; });
+    document.querySelectorAll('#toc a').forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('href')==='#'+cur);
+    });
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+  document.querySelectorAll('.bar-fill').forEach(function(el){
+    var w=el.style.width; el.style.width='0'; setTimeout(function(){el.style.width=w;},160);
+  });
+})();
+</script>
+</body>
+</html>
