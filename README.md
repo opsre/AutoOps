@@ -172,12 +172,11 @@ docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_
 ```bash
 # 脚本+镜像版本+ip+前端端口
 cd /root/deviops/docker
-./devops-start.sh  v5.0   ip     8080
+./devops-start.sh  v6.0   ip     8080
 ```
 
 
 ```bash
-docker-compose up -d
 ### 2. 查看服务状态
 docker-compose ps
 ### 3. 查看服务日志
