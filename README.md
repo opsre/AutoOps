@@ -177,7 +177,6 @@ cd /root/deviops/docker
 
 
 ```bash
-docker-compose up -d
 ### 2. 查看服务状态
 docker-compose ps
 ### 3. 查看服务日志
