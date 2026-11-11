@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoOps 全栈运维平台 · 产品能力白皮书</title>
+<meta name="description" content="AutoOps 天枢：一个平台替代 Zabbix + Prometheus + ELK + JumpServer，内置 CMDB、监控告警、日志平台、K8s 管理、数据库工单、成本中心与 AI 运维。">
+<style>
+:root{
+  --navy:#08182f; --navy2:#0f2b52; --blue:#2f6bff; --blue-d:#1b4bb8; --blue-l:#eaf1ff;
+  --cyan:#0ea5b7; --cyan-bg:#e8f7f9;
+  --gold:#c9971f; --gold-bg:#fbf6e7;
+  --purple:#6d4aff; --purple-bg:#f2eeff;
+  --ink:#0f1c2e; --muted:#5a6a80; --faint:#93a1b3;
+  --line:#e4eaf2; --bg:#f5f8fc; --card:#fff;
+  --green:#12805a; --green-bg:#e6f6ef;
+  --red:#b3261e; --red-bg:#fdeceb;
+  --shadow:0 1px 2px rgba(8,24,47,.04),0 10px 30px rgba(8,24,47,.06);
+  --shadow-l:0 2px 6px rgba(8,24,47,.05),0 24px 60px rgba(8,24,47,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.75;font-size:15.5px;
+  -webkit-font-smoothing:antialiased;
+}
+code,.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.88);backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--line)}
+.nav-in{max-width:1180px;margin:0 auto;padding:0 28px;height:62px;display:flex;align-items:center;gap:26px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;color:var(--navy);font-size:16px}
+.brand .mk{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--navy2),var(--blue));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;box-shadow:0 4px 12px rgba(47,107,255,.35)}
+.brand small{font-size:10.5px;color:var(--faint);font-weight:600;letter-spacing:.4px;border-left:1px solid var(--line);padding-left:10px;margin-left:2px}
+.nav-links{display:flex;gap:17px;margin-left:auto;font-size:13px}
+.nav-links a{white-space:nowrap}
+.brand small{white-space:nowrap}
+.nav-links a{color:var(--muted);text-decoration:none;transition:color .18s}
+.nav-links a:hover{color:var(--blue)}
+.nav-cta{font-size:13px;font-weight:600;color:#fff;background:var(--navy);padding:8px 16px;border-radius:8px;text-decoration:none;white-space:nowrap}
+.nav-cta:hover{background:var(--navy2)}
+.hero{position:relative;overflow:hidden;color:#fff;
+  background:radial-gradient(1000px 520px at 78% -10%,rgba(47,107,255,.55),transparent 60%),
+             radial-gradient(700px 420px at 8% 110%,rgba(14,165,183,.36),transparent 60%),
+             linear-gradient(160deg,#050f1e 0%,var(--navy) 45%,#0d2749 100%)}
+.hero:before{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:52px 52px;mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 88%)}
+.hero-in{position:relative;max-width:1180px;margin:0 auto;padding:82px 28px 90px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:2.4px;text-transform:uppercase;color:#9fc0ff;font-weight:700;border:1px solid rgba(159,192,255,.28);background:rgba(47,107,255,.10);padding:6px 12px;border-radius:20px;margin-bottom:24px}
+.eyebrow i{width:6px;height:6px;border-radius:50%;background:#5eead4;box-shadow:0 0 0 4px rgba(94,234,212,.18)}
+h1{font-size:52px;line-height:1.22;font-weight:800;letter-spacing:-.8px;margin-bottom:18px;position:relative;z-index:1}
+h1 em{font-style:normal;background:linear-gradient(100deg,#7fb0ff,#5eead4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .tag{font-size:17.5px;color:#c6d7ef;max-width:790px;line-height:1.9;margin-bottom:14px;position:relative;z-index:1}
+.hero .tag b{color:#fff;font-weight:650}
+.hero .lede{font-size:13.5px;color:#8fa9c9;max-width:760px;position:relative;z-index:1}
+.hero-cta{display:flex;gap:12px;margin-top:32px;flex-wrap:wrap;position:relative;z-index:1}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:10px;font-size:14px;font-weight:650;text-decoration:none;transition:all .2s}
+.btn-p{background:linear-gradient(100deg,#2f6bff,#4f8bff);color:#fff;box-shadow:0 10px 26px rgba(47,107,255,.32)}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 14px 32px rgba(47,107,255,.42)}
+.btn-s{background:rgba(255,255,255,.07);color:#dbebff;border:1px solid rgba(255,255,255,.18)}
+.btn-s:hover{background:rgba(255,255,255,.12)}
+.hero-stats{position:relative;max-width:1180px;margin:-44px auto 0;padding:0 28px;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;z-index:2}
+.stat{background:#fff;border-radius:14px;padding:20px 14px 17px;text-align:center;box-shadow:var(--shadow-l);border-top:3px solid var(--blue)}
+.stat:nth-child(6){border-top-color:var(--purple)}
+.stat .v{font-size:27px;font-weight:800;color:var(--navy);font-family:Consolas,monospace;line-height:1.2}
+.stat .v .u{font-size:15px;font-weight:800;margin-left:1px;vertical-align:2px}
+.stat .k{font-size:11.5px;color:var(--muted);margin-top:5px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+section{padding:78px 0 0;scroll-margin-top:76px}
+.sec-tag{font-family:Consolas,monospace;font-size:12px;color:var(--blue);font-weight:700;letter-spacing:1.2px;margin-bottom:10px}
+h2{font-size:33px;line-height:1.35;font-weight:800;letter-spacing:-.4px;color:var(--navy)}
+h2 .hl{background:linear-gradient(180deg,transparent 62%,#d9e6ff 62%);padding:0 2px}
+.sec-sub{color:var(--muted);font-size:14.5px;margin-top:12px;max-width:820px;line-height:1.9}
+h3{font-size:19px;font-weight:750;color:var(--navy);margin:34px 0 12px}
+h4{font-size:14.5px;color:var(--navy2);font-weight:700}
+p{margin:10px 0}
+strong{color:var(--navy);font-weight:700}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:30px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:26px}
+.pain{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+.pain .ico{width:34px;height:34px;border-radius:9px;background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;margin-bottom:12px;font-family:Consolas,monospace}
+.pain b{display:block;font-size:14.5px;color:var(--navy);margin-bottom:6px}
+.pain span{font-size:12.8px;color:var(--muted);line-height:1.72}
+.split{display:grid;grid-template-columns:1fr 88px 1fr;gap:16px;align-items:center;margin-top:32px}
+.stackbox,.onebox{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 24px;box-shadow:var(--shadow)}
+.stackbox h4,.onebox h4{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:14px;letter-spacing:.4px;text-transform:uppercase}
+.tool{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px;font-size:13px;color:#3d4c60;background:#fbfcfe}
+.tool .dot{width:7px;height:7px;border-radius:50%;background:#c3cede;flex:0 0 7px}
+.tool .x{margin-left:auto;color:#b3261e;font-size:11px;font-weight:700}
+.onebox{border:2px solid var(--blue);background:linear-gradient(160deg,#f7fbff,#fff)}
+.onebox h4{color:var(--blue)}
+.onecap{display:flex;flex-wrap:wrap;gap:7px}
+.onecap span{font-size:11.5px;background:var(--blue-l);color:#1b4bb8;border:1px solid #d5e3ff;padding:4px 9px;border-radius:6px;font-weight:600}
+.vs{text-align:center;font-weight:800;color:var(--faint);font-size:12px;letter-spacing:1px}
+.cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+.cap{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 22px 20px;box-shadow:var(--shadow);overflow:hidden;transition:all .22s}
+.cap:hover{transform:translateY(-2px);box-shadow:var(--shadow-l);border-color:#cfdcf0}
+.cap:before{content:"";position:absolute;left:0;top:0;width:100%;height:3px;background:linear-gradient(90deg,var(--blue),#7fb0ff)}
+.cap.ai:before{background:linear-gradient(90deg,var(--purple),#a78bfa)}
+.cap.data:before{background:linear-gradient(90deg,var(--cyan),#5eead4)}
+.cap.money:before{background:linear-gradient(90deg,var(--gold),#e8c86a)}
+.cap .no{font-family:Consolas,monospace;font-size:11px;color:var(--faint);font-weight:700;letter-spacing:1px}
+.cap b{display:block;font-size:16px;color:var(--navy);margin:7px 0 6px;font-weight:750}
+.cap p{font-size:12.8px;color:var(--muted);line-height:1.72;margin:0}
+.cap .tg{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.cap .tg span{font-size:10.8px;background:#f2f6fc;color:#3b5b86;border:1px solid #e2ebf7;padding:2px 7px;border-radius:5px}
+.cap .tg span.ai{background:var(--purple-bg);color:#553ac2;border-color:#e4dcff}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;margin:18px 0;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+thead th{background:linear-gradient(180deg,var(--navy),#14365f);color:#fff;padding:14px 12px;font-size:12.5px;font-weight:650;text-align:left;border-bottom:2px solid var(--gold)}
+thead th.self{background:linear-gradient(180deg,#123d8a,#2f6bff);text-align:center}
+tbody td{padding:11px 12px;border-bottom:1px solid #eef2f7;vertical-align:middle;color:#42536a}
+tbody td.self{background:#f6faff;text-align:center;font-weight:650;color:var(--navy)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#fafcff}
+tbody tr:hover td.self{background:#eef6ff}
+td b{color:var(--navy)}
+.tw{overflow-x:auto;border-radius:14px}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;line-height:1.75;white-space:nowrap}
+.b-y{background:var(--green-bg);color:var(--green)}
+.b-p{background:var(--gold-bg);color:#8a6a12}
+.b-n{background:#f1f4f8;color:#7b8a9d}
+.b-s{background:var(--blue-l);color:#1b4bb8}
+.b-a{background:var(--purple-bg);color:#553ac2}
+.b-r{background:var(--red-bg);color:var(--red)}
+.adv{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:32px}
+.adv-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px 26px 22px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.adv-card .num{font-family:Consolas,monospace;font-size:34px;font-weight:800;color:#edf2fa;position:absolute;right:22px;top:14px;line-height:1}
+.adv-card h4{font-size:16.5px;color:var(--navy);margin:0 0 8px;font-weight:750;display:flex;align-items:center;gap:9px}
+.adv-card h4 .sq{width:9px;height:9px;border-radius:3px;background:var(--blue);flex:0 0 9px}
+.adv-card.ai h4 .sq{background:var(--purple)}
+.adv-card.data h4 .sq{background:var(--cyan)}
+.adv-card.gold h4 .sq{background:var(--gold)}
+.adv-card p{font-size:13.2px;color:var(--muted);line-height:1.8;margin:0 0 10px}
+.adv-card ul{margin:8px 0 0 17px;font-size:12.8px;color:#42536a}
+.adv-card li{margin:4px 0}
+.chip{display:inline-block;font-family:Consolas,monospace;font-size:11px;background:#f2f6fc;border:1px solid #e2ebf7;color:#2a4f85;padding:3px 8px;border-radius:5px;margin:6px 4px 0 0}
+.chip.ai{background:var(--purple-bg);border-color:#e4dcff;color:#553ac2}
+.flow{display:flex;flex-wrap:wrap;gap:9px;align-items:stretch;margin:22px 0 6px}
+.flow .st{flex:1;min-width:130px;background:#fff;border:1px solid var(--line);border-top:3px solid var(--blue);border-radius:10px;padding:13px 14px;font-size:12px;box-shadow:var(--shadow)}
+.flow .st b{display:block;color:var(--navy);font-size:12.8px;margin-bottom:4px}
+.flow .st span{color:var(--muted);font-size:11.5px;line-height:1.65}
+.flow .ar{display:flex;align-items:center;color:#b9c7da;font-size:17px;font-weight:800}
+.quote{background:linear-gradient(160deg,#f7faff,#fff);border:1px solid #dce8fb;border-left:4px solid var(--blue);border-radius:12px;padding:20px 24px;margin:22px 0;box-shadow:var(--shadow)}
+.quote p{font-size:14.2px;color:#2c3d54;margin:0 0 8px;line-height:1.9}
+.quote p:last-child{margin:0}
+.quote .who{font-size:12px;color:var(--faint);margin-top:10px}
+.arch{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-top:24px}
+.mini{font-size:12px;color:var(--faint);margin-top:10px;line-height:1.8}
+.dcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+.dcard .t{font-size:12px;font-weight:750;color:var(--blue);letter-spacing:.6px;margin-bottom:8px;text-transform:uppercase}
+.dcard b{display:block;font-size:15.5px;color:var(--navy);margin-bottom:8px}
+.dcard p{font-size:12.8px;color:var(--muted);line-height:1.75;margin:0}
+.faq{margin-top:26px;border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line);padding:16px 2px}
+.faq summary{cursor:pointer;font-size:14.5px;font-weight:650;color:var(--navy);list-style:none;display:flex;align-items:center;gap:10px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:before{content:"+";font-family:Consolas,monospace;color:var(--blue);font-weight:800;font-size:16px;width:16px}
+.faq details[open] summary:before{content:"–"}
+.faq p{font-size:13.2px;color:var(--muted);margin:10px 0 2px 26px;line-height:1.85}
+.cta{margin:78px 0 0;border-radius:20px;padding:54px 48px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-l);
+  background:radial-gradient(800px 380px at 82% 0%,rgba(47,107,255,.55),transparent 62%),linear-gradient(140deg,#061226,#0c2647 60%,#123a6b)}
+.cta:after{content:"";position:absolute;right:-80px;bottom:-140px;width:420px;height:420px;border:1px solid rgba(255,255,255,.10);border-radius:50%}
+.cta h2{color:#fff;font-size:29px;position:relative;z-index:1}
+.cta p{color:#b9cde8;font-size:14.2px;max-width:660px;margin-top:12px;position:relative;z-index:1}
+.cta .contact{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;position:relative;z-index:1}
+.contact-item{border:1px dashed rgba(255,255,255,.34);border-radius:10px;padding:10px 16px;font-size:12.5px;color:#dbebff}
+.contact-item b{display:block;font-size:10.5px;letter-spacing:1.2px;color:#8fb4e0;font-weight:700;margin-bottom:3px}
+.foot{max-width:1180px;margin:56px auto 0;padding:30px 28px 46px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--faint);border-top:1px solid var(--line)}
+.foot b{color:var(--navy)}
+.tagline{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0}
+.tagline span{font-size:11.5px;padding:5px 11px;border-radius:6px;background:#fff;border:1px solid var(--line);color:var(--navy2);box-shadow:0 1px 2px rgba(8,24,47,.03)}
+@media(max-width:1080px){
+  .hero-stats{grid-template-columns:repeat(3,1fr);margin-top:-30px}
+  h1{font-size:40px}
+  .grid4{grid-template-columns:1fr 1fr}
+  .cap-grid{grid-template-columns:1fr 1fr}
+  .split{grid-template-columns:1fr;gap:12px}
+  .adv{grid-template-columns:1fr}
+  .grid3,.grid2{grid-template-columns:1fr}
+}
+@media(max-width:720px){
+  .nav-links{display:none}
+  h1{font-size:31px}
+  h2{font-size:25px}
+  .hero-in{padding:54px 20px 70px}
+  .hero-stats{grid-template-columns:1fr 1fr}
+  .grid4,.cap-grid{grid-template-columns:1fr}
+  section{padding:54px 0 0}
+  .cta{padding:34px 22px}
+  .cta h2{font-size:23px}
+}
+@media print{
+  .nav,.hero-cta,.cta .contact{display:none}
+  body{background:#fff}
+  .hero{background:#08182f!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  section{padding:24px 0 0}
+  .cap,.adv-card,.dcard,.pain,table{break-inside:avoid}
+  thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-in">
+    <div class="brand"><span class="mk">A</span>AutoOps<small>天枢 · 全栈运维平台</small></div>
+    <div class="nav-links">
+      <a href="#pain">为什么</a>
+      <a href="#cap">能力全景</a>
+      <a href="#compare">对比开源</a>
+      <a href="#adv">六大优势</a>
+      <a href="#ai">AI 运维</a>
+      <a href="#scene">场景价值</a>
+      <a href="#deliver">交付</a>
+    </div>
+    <a class="nav-cta" href="#contact">免费体验</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="eyebrow"><i></i>FULL-STACK OPS PLATFORM · v5</div>
+    <h1>AutoOps 全栈运维平台<br><em>一个平台，接管从资产到 AI 的全部运维场景</em></h1>
+    <div class="tag">把 <b>CMDB、监控告警、日志平台、堡垒机、K8s 管理、数据库工单、成本中心</b> 收进同一个平台——<b>一套账号、一套资产、一条审计链</b>，并让 AI 真正进入运维流程，而不只是停在聊天窗口。</div>
+    <div class="lede">12 大能力域 · 950+ 服务接口 · 前后端全栈自研 · 支持完全私有化与离线内网交付</div>
+    <div class="hero-cta">
+      <a class="btn btn-p" href="#cap">查看能力全景 →</a>
+      <a class="btn btn-s" href="#compare">对比开源方案</a>
+    </div>
+  </div>
+</div>
+
+<div class="hero-stats">
+  <div class="stat"><div class="v">12</div><div class="k">能力域，一个平台</div></div>
+  <div class="stat"><div class="v">950<span class="u">+</span></div><div class="k">服务接口</div></div>
+  <div class="stat"><div class="v">6</div><div class="k">公有云纳管</div></div>
+  <div class="stat"><div class="v">14</div><div class="k">内置 AI 技能</div></div>
+  <div class="stat"><div class="v">1</div><div class="k">套账号 / 一套资产</div></div>
+  <div class="stat"><div class="v">100<span class="u">%</span></div><div class="k">私有化 · 可离线</div></div>
+</div>
+
+<section id="pain">
+  <div class="wrap">
+    <div class="sec-tag">01 / WHY</div>
+    <h2>运维不缺工具，缺的是<span class="hl">把它们连起来的那一层</span></h2>
+    <p class="sec-sub">Zabbix 管监控、ELK 管日志、JumpServer 管登录、KubeSphere 管容器、CMDB 单独一套、工单又是另一张表——每多一套系统，就多一套账号、一份数据孤岛、一段对不上的时间线。</p>
+
+    <div class="grid4">
+      <div class="pain"><div class="ico">01</div><b>系统割裂</b><span>告警在 A、日志在 B、主机在 C、工单在 D。定位一次故障要开五个窗口，时间戳还对不上。</span></div>
+      <div class="pain"><div class="ico">02</div><b>告警风暴</b><span>工具只负责"发出去"，不负责"收敛"。同一台主机八条告警刷屏，真正的根因被淹没。</span></div>
+      <div class="pain"><div class="ico">03</div><b>变更失控</b><span>SQL 直连生产、脚本随手执行、发布靠人盯。出事只能翻聊天记录：没审批、没回滚、没录像。</span></div>
+      <div class="pain"><div class="ico">04</div><b>AI 只是聊天框</b><span>大模型接进来了，却拿不到资产、读不到日志、动不了工单——问完还得人肉去别的系统里操作。</span></div>
+    </div>
+
+    <div class="split">
+      <div class="stackbox">
+        <h4>传统做法：6 ~ 8 套系统拼装</h4>
+        <div class="tool"><span class="dot"></span>Zabbix / Prometheus + Grafana<span class="x">账号 ①</span></div>
+        <div class="tool"><span class="dot"></span>ELK / EFK 日志栈<span class="x">账号 ②</span></div>
+        <div class="tool"><span class="dot"></span>JumpServer 堡垒机<span class="x">账号 ③</span></div>
+        <div class="tool"><span class="dot"></span>KubeSphere / Kuboard<span class="x">账号 ④</span></div>
+        <div class="tool"><span class="dot"></span>CMDBuild / 自研 CMDB<span class="x">账号 ⑤</span></div>
+        <div class="tool"><span class="dot"></span>Archery / Yearning SQL 审计<span class="x">账号 ⑥</span></div>
+        <div class="tool"><span class="dot"></span>自研工单 / 发布系统<span class="x">账号 ⑦</span></div>
+        <div class="tool"><span class="dot"></span>独立 AI 工具<span class="x">账号 ⑧</span></div>
+        <div class="mini">结果：资产要同步 8 次、权限要配 8 遍、故障要查 8 个地方，且<b>没有任何一条链路是通的</b>。</div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="onebox">
+        <h4>AutoOps：一个平台，一套数据模型</h4>
+        <div class="onecap">
+          <span>CMDB 资产</span><span>监控告警</span><span>日志平台</span><span>堡垒机</span><span>K8s 多集群</span><span>Arthas 诊断</span><span>数据库工单</span><span>任务编排</span><span>ITSM 工单</span><span>成本中心</span><span>AI 中枢</span><span>审计合规</span>
+        </div>
+        <div class="mini" style="margin-top:14px;color:#3b5876">主机 ID 在告警、日志、工单、终端、AI 诊断里是<b>同一个 ID</b>；权限授一次全平台生效；一次登录走完全部场景。</div>
+        <div class="tagline" style="margin-bottom:0">
+          <span>一次部署</span><span>一套 RBAC</span><span>一条审计链</span><span>一个数据底座</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="quote">
+      <p>「我们不是把 Zabbix 重写了一遍。我们做的是：<b>让资产、指标、日志、告警、变更、审计共享同一套主数据</b>——这样 AI 才有东西可查，流程才可能真正闭环。」</p>
+      <div class="who">— AutoOps 设计原则</div>
+    </div>
+  </div>
+</section>
+
+<section id="cap">
+  <div class="wrap">
+    <div class="sec-tag">02 / CAPABILITY MAP</div>
+    <h2>12 大能力域，覆盖运维日常的<span class="hl">全部工作面</span></h2>
+    <p class="sec-sub">从资产台账到终端登录，从指标告警到日志检索，从 K8s 容器到数据库变更，从成本账单到 AI 诊断——不是"插件市场"，而是同一套代码、同一套权限、同一套数据模型。</p>
+
+    <div class="cap-grid">
+      <div class="cap"><div class="no">01 / CMDB</div><b>资产与主机管理</b><p>主机、分组、机房机柜、云主机、数据库资产、中间件资产统一台账，六云导入 + Excel 批量 + 自动同步。</p><div class="tg"><span>六云纳管</span><span>机房 3D/U 位</span><span>业务拓扑</span><span>分组树</span></div></div>
+      <div class="cap data"><div class="no">02 / ACCESS</div><b>堡垒机与终端</b><p>WebSSH、SFTP 文件管理、RDP 远程桌面、交换机终端、数据库终端；授权到人/组/资产，操作全程录像。</p><div class="tg"><span>会话录像</span><span>命令审计</span><span>RDP</span><span>敏感命令分级</span></div></div>
+      <div class="cap"><div class="no">03 / MONITOR</div><b>监控与告警引擎</b><p>自研告警引擎：规则组、事件指纹去重、静默、认领、恢复通知，多级通知路由，不依赖 Zabbix 也能跑。</p><div class="tg"><span>VictoriaMetrics</span><span>告警收敛</span><span>通知路由</span><span>告警看板</span></div></div>
+      <div class="cap data"><div class="no">04 / LOGS</div><b>日志平台</b><p>Vector 采集 + Kafka 缓冲 + VictoriaLogs 存储检索；采集配置下发、解析模板、日志告警、慢日志日报。</p><div class="tg"><span>比 ELK 更省资源</span><span>K8s 采集</span><span>Nginx 看板</span><span>慢日志分析</span></div></div>
+      <div class="cap"><div class="no">05 / K8S</div><b>Kubernetes 多集群</b><p>集群/节点/工作负载/网络/存储/配置全资源管理，YAML 编辑、日志流、容器终端、临时调试容器、集群巡检。</p><div class="tg"><span>多集群</span><span>全资源</span><span>巡检报告</span><span>debug 容器</span></div></div>
+      <div class="cap ai"><div class="no">06 / ARTHAS</div><b>Java 在线诊断</b><p>不下线、不重启，直接在页面上看 JVM、线程、内存、反编译、火焰图，WS 实时 trace/watch/monitor。</p><div class="tg"><span>Arthas 集成</span><span>火焰图</span><span>jad 反编译</span></div></div>
+      <div class="cap data"><div class="no">07 / DATABASE</div><b>数据库审计与工单</b><p>MySQL/PG/Redis/Mongo/ES 统一纳管；SQL 提交 → 审核 → 审批 → 执行 → 回滚，变更全程留痕。</p><div class="tg"><span>SQL 工单</span><span>审批流</span><span>gh-ost/my2sql</span><span>回滚</span></div></div>
+      <div class="cap"><div class="no">08 / AUTOMATION</div><b>任务编排</b><p>定时任务、Shell/Python 脚本、Ansible Playbook，WebSocket 实时回显；任务队列、调度器状态可视。</p><div class="tg"><span>cron</span><span>Ansible</span><span>实时日志</span><span>队列监控</span></div></div>
+      <div class="cap"><div class="no">09 / ITSM</div><b>工单与发布</b><p>自定义审批流、日常事务工单、发布单执行/重试/日志，把"变更"从聊天记录里搬进流程。</p><div class="tg"><span>审批流</span><span>发布单</span><span>状态机</span></div></div>
+      <div class="cap money"><div class="no">10 / COST</div><b>多云成本中心</b><p>阿里/腾讯/华为/百度/AWS 账单统一归集，按产品、按标签、按月趋势，余额预警与总览。</p><div class="tg"><span>五云账单</span><span>余额预警</span><span>成本归因</span></div></div>
+      <div class="cap ai"><div class="no">11 / AIOPS</div><b>AI 运维中枢</b><p>MCP 工具协议 + 14 个风险分级技能 + 知识库 + Agent 运行审计；AI 能查资产、读日志、发起动作。</p><div class="tg"><span class="ai">MCP Server</span><span class="ai">Skill 目录</span><span class="ai">企微对话</span><span class="ai">Run 审计</span></div></div>
+      <div class="cap"><div class="no">12 / GOVERN</div><b>权限与合规审计</b><p>RBAC 五表模型、LDAP/SSO 集成、登录/操作/命令/录像四层审计，API 级动作授权与审计上下文。</p><div class="tg"><span>RBAC</span><span>LDAP</span><span>四层审计</span><span>License 授权</span></div></div>
+    </div>
+
+    <div class="tagline">
+      <span>Go 1.25 + Gin</span><span>Vue 3.5 + Element Plus</span><span>MySQL</span><span>Redis</span><span>VictoriaMetrics</span><span>VictoriaLogs</span><span>Kafka</span><span>Vector</span><span>client-go 0.34</span><span>Ansible</span><span>Docker / Compose</span><span>amd64 + arm64</span>
+    </div>
+    <p class="mini">技术选型说明：全线采用可私有化、无商业授权依赖的开源组件；日志与指标底座用 VictoriaMetrics / VictoriaLogs 替代 Prometheus + ELK，同量级数据下资源占用显著更低，单机即可支撑中小规模生产。</p>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="wrap">
+    <div class="sec-tag">03 / COMPARISON</div>
+    <h2>和开源方案比，差的不只是<span class="hl">功能数量</span></h2>
+    <p class="sec-sub">以下对比按「一个平台能否原生覆盖」为口径。需要说明的是：Zabbix 的采集成熟度、Prometheus 的生态、ELK 的检索能力都是各自领域的标杆——但它们的设计目标都是「做好一件事」，而不是「把运维串起来」。AutoOps 补的正是后面这半段。</p>
+
+    <div class="tw">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:20%">能力维度</th>
+          <th class="self" style="width:14%">AutoOps</th>
+          <th style="width:13%">Zabbix</th>
+          <th style="width:15%">Prometheus<br>+ Grafana</th>
+          <th style="width:13%">ELK / EFK</th>
+          <th style="width:12%">JumpServer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><b>资产台账 CMDB</b></td><td class="self"><span class="badge b-y">内置统一</span></td><td><span class="badge b-p">仅主机对象</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>主机 / 网络设备监控</b></td><td class="self"><span class="badge b-y">内置</span></td><td><span class="badge b-y">强项</span></td><td><span class="badge b-y">强项</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>告警收敛与通知路由</b></td><td class="self"><span class="badge b-y">指纹/静默/认领</span></td><td><span class="badge b-p">触发器 + 依赖</span></td><td><span class="badge b-p">Alertmanager</span></td><td><span class="badge b-p">需商业版</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>日志采集与检索</b></td><td class="self"><span class="badge b-y">Vector + VL</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">需另配 Loki</span></td><td><span class="badge b-y">强项</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>堡垒机 / 终端审计</b></td><td class="self"><span class="badge b-y">SSH/RDP/录像</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-y">强项</span></td></tr>
+        <tr><td><b>K8s 多集群管理</b></td><td class="self"><span class="badge b-y">全资源 + 终端</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-p">仅指标</span></td><td><span class="badge b-p">仅日志</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>Java 在线诊断（Arthas）</b></td><td class="self"><span class="badge b-y">页面内置</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>数据库审计 + SQL 工单</b></td><td class="self"><span class="badge b-y">审批/执行/回滚</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>任务编排 / Ansible</b></td><td class="self"><span class="badge b-y">内置</span></td><td><span class="badge b-p">需外部脚本</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-p">仅命令</span></td></tr>
+        <tr><td><b>ITSM 工单 / 发布单</b></td><td class="self"><span class="badge b-y">内置</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>多云成本归集</b></td><td class="self"><span class="badge b-y">五云账单</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>AI 运维（MCP / 技能）</b></td><td class="self"><span class="badge b-a">内置可执行</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td><td><span class="badge b-n">无</span></td></tr>
+        <tr><td><b>统一 RBAC 与账号</b></td><td class="self"><span class="badge b-y">全平台一套</span></td><td><span class="badge b-p">自身一套</span></td><td><span class="badge b-p">Grafana 一套</span></td><td><span class="badge b-p">Kibana 一套</span></td><td><span class="badge b-y">自身一套</span></td></tr>
+        <tr><td><b>部署形态</b></td><td class="self"><span class="badge b-y">单机/离线/多架构</span></td><td><span class="badge b-p">单机/分布式</span></td><td><span class="badge b-p">多组件编排</span></td><td><span class="badge b-r">资源重</span></td><td><span class="badge b-y">单机/集群</span></td></tr>
+        <tr><td><b>源码可二次开发</b></td><td class="self"><span class="badge b-y">Go + Vue 全栈</span></td><td><span class="badge b-y">开源</span></td><td><span class="badge b-y">开源</span></td><td><span class="badge b-p">部分组件</span></td><td><span class="badge b-y">开源</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="mini">口径说明：「内置」指无需额外部署第三方系统即可在平台内完成；「部分」指该工具自身具备但与运维主数据不连通；「无」指需另选系统。Zabbix / Prometheus / ELK / JumpServer 均为各自领域的优秀开源项目，此处比较的是<b>一体化程度</b>而非单项能力上限。</p>
+
+    <h3>把"拼装方案"换成"一个平台"，省掉的是什么</h3>
+    <div class="tw">
+    <table>
+      <thead><tr><th style="width:26%">隐性成本项</th><th style="width:37%">6~8 套开源系统拼装</th><th>AutoOps 一体化</th></tr></thead>
+      <tbody>
+        <tr><td><b>系统与中间件数量</b></td><td>6~8 个应用 + 各自的数据库/缓存/依赖，升级窗口互相牵扯</td><td><b>1 套应用</b> + MySQL + Redis（日志/指标组件可选内置 compose）</td></tr>
+        <tr><td><b>账号与权限体系</b></td><td>每套独立账号，人员变动要改 8 处；权限模型各不相同</td><td><b>一套 RBAC</b>，菜单 + 按钮 + API 动作三级，LDAP/SSO 统一接入</td></tr>
+        <tr><td><b>资产数据一致性</b></td><td>CMDB 改一次要人工同步到监控、堡垒机、K8s 平台</td><td><b>一套主数据</b>，告警/日志/终端/工单/诊断全部按同一资产 ID 关联</td></tr>
+        <tr><td><b>故障定位链路</b></td><td>告警 → 切监控 → 切日志 → 切终端 → 人肉拼时间线，通常 10~30 分钟起步</td><td>告警详情直接下钻指标、日志、进程、终端，<b>分钟级定位</b></td></tr>
+        <tr><td><b>变更合规</b></td><td>SQL 审计、堡垒机、工单三套系统各留一半记录，审计时要人工对齐</td><td>SQL 工单 / 发布单 / 命令 / 录像<b>同一条审计链</b>，可导出可回溯</td></tr>
+        <tr><td><b>AI 可用性</b></td><td>外部大模型拿不到内部资产与日志，只能"泛泛而谈"</td><td>AI 通过 <b>MCP 工具</b>直接调用平台能力，回答带数据、动作可审计</td></tr>
+        <tr><td><b>运维人力</b></td><td>需要专人维护多套系统的版本、证书、备份、告警通道</td><td>一次部署、一套升级、一份备份策略</td></tr>
+        <tr><td><b>许可与合规</b></td><td>ELK 高级功能、部分插件需商业授权；信创环境适配困难</td><td><b>完全私有化、可离线</b>，机器绑定授权，无强制外网依赖</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="mini">注：上表为架构层面的定性对比，不含具体金额测算；实际 TCO 与团队规模、存量系统、数据量级相关，可按需提供评估表。</p>
+  </div>
+</section>
+
+<section id="adv">
+  <div class="wrap">
+    <div class="sec-tag">04 / DIFFERENTIATION</div>
+    <h2>六个别人不容易补齐的<span class="hl">结构性优势</span></h2>
+    <p class="sec-sub">不是"我们也有"，而是"这些能力只有在同一个数据模型里才成立"。每一条都能在源码里找到对应实现。</p>
+
+    <div class="adv">
+      <div class="adv-card">
+        <div class="num">01</div>
+        <h4><span class="sq"></span>真一体化：不是集成，是同一份数据</h4>
+        <p>很多平台说"集成"，本质是 iframe 嵌页面、API 拉数据。AutoOps 是<b>同一套数据库、同一套资产 ID、同一套权限</b>：主机在 CMDB 建一次，监控、告警、日志、终端、工单、AI 诊断全部直接引用。</p>
+        <ul>
+          <li>告警 → 主机详情 → 指标曲线 → 进程/端口 → 终端登录，一条路径到底</li>
+          <li>资产变更自动反映到所有下游模块，没有"同步任务"要维护</li>
+          <li>角色授一次，12 个域的菜单、按钮、接口动作同时生效</li>
+        </ul>
+        <div><span class="chip">统一主数据</span><span class="chip">12 域共享模型</span><span class="chip">单一 RBAC</span></div>
+      </div>
+
+      <div class="adv-card ai">
+        <div class="num">02</div>
+        <h4><span class="sq"></span>AI 在流程里干活，不在旁边聊天</h4>
+        <p>内置 <b>MCP Server</b>，把 CMDB、K8s、日志、监控能力注册成标准工具；<b>14 个技能</b>按风险等级分级（只读 / 低风险 / 需确认），AI 调用有审批、有留痕、可回放。</p>
+        <ul>
+          <li>问"这台机器为什么慢"——AI 自己查指标、拉日志、看进程，再给结论</li>
+          <li>危险动作（重启、执行命令）走二次确认，不会"自作主张"</li>
+          <li>Agent Run / Step / 证据全程落库，出了问题能倒查是哪一步判断错了</li>
+          <li>Web 端 + 企业微信双入口，值班在手机上也能问</li>
+        </ul>
+        <div><span class="chip ai">MCP 工具协议</span><span class="chip ai">风险分级 Skill</span><span class="chip ai">Run 审计</span><span class="chip ai">企微入口</span></div>
+      </div>
+
+      <div class="adv-card data">
+        <div class="num">03</div>
+        <h4><span class="sq"></span>变更安全闭环：从"敢改"到"可回滚"</h4>
+        <p>运维事故大多不是"发现不了"，而是"改了之后回不去"。平台把数据库变更做成完整工单：提交 → 自动审核 → 审批 → 执行 → <b>一键回滚</b>（集成 gh-ost / my2sql / pgroll 等工具）。</p>
+        <ul>
+          <li>DML / DDL / 查询三类工单，审批节点可自定义</li>
+          <li>执行前影响行数预估，执行后 binlog 留档</li>
+          <li>发布单支持分项执行、失败重试、实时日志</li>
+          <li>所有变更与操作日志、终端录像串联，审计时是一条完整证据链</li>
+        </ul>
+        <div><span class="chip">SQL 工单</span><span class="chip">审批流</span><span class="chip">回滚</span><span class="chip">发布单</span></div>
+      </div>
+
+      <div class="adv-card">
+        <div class="num">04</div>
+        <h4><span class="sq"></span>混合环境原生支持：VM + K8s + DB + 网络设备</h4>
+        <p>大多数平台只能选一边：要么传统主机（Zabbix 系），要么纯云原生（KubeSphere 系）。国内现实是<b>两套并存</b>——物理机跑核心库，K8s 跑新业务，还有交换机和中间件。</p>
+        <ul>
+          <li>六云主机导入（阿里/腾讯/华为/百度/AWS/天翼）+ 机房机柜 U 位管理</li>
+          <li>K8s 全资源控制台 + 容器终端 + 文件管理 + Arthas 诊断</li>
+          <li>SNMP 交换机监控、Kafka/ZK/ES/Nginx 中间件运维</li>
+          <li>Windows 主机（Exporter 远程安装 + 远程桌面）同样纳入</li>
+        </ul>
+        <div><span class="chip">六云</span><span class="chip">K8s</span><span class="chip">SNMP</span><span class="chip">中间件</span><span class="chip">Windows</span></div>
+      </div>
+
+      <div class="adv-card data">
+        <div class="num">05</div>
+        <h4><span class="sq"></span>可观测底座更轻：VictoriaMetrics / VictoriaLogs</h4>
+        <p>不堆 Elasticsearch 集群，不做"日志平台要 3 台 32G 起步"的架构。Vector 采集 + Kafka 缓冲 + VictoriaLogs 存储，<b>单机即可承载中小规模生产日志</b>，指标侧用 VictoriaMetrics 兼容 PromQL。</p>
+        <ul>
+          <li>兼容 Prometheus 生态：现有 exporter、Grafana 面板可直接复用</li>
+          <li>日志字段检索、上下文查看、链路追踪视图、日志告警</li>
+          <li>采集配置由平台统一下发，K8s 采集器一键安装</li>
+          <li>慢日志自动分析 + 日报，DBA 不用天天手工捞</li>
+        </ul>
+        <div><span class="chip">PromQL 兼容</span><span class="chip">低资源占用</span><span class="chip">统一采集</span></div>
+      </div>
+
+      <div class="adv-card gold">
+        <div class="num">06</div>
+        <h4><span class="sq"></span>交付就绪：能进内网，能上 ARM，能离线</h4>
+        <p>ToB 项目最怕"演示很漂亮，交付一地鸡毛"。AutoOps 从第一天就按<b>私有化交付</b>设计：一键 compose、双架构镜像、离线 Agent、机器绑定授权。</p>
+        <ul>
+          <li><code>./devops-start.sh v5.0 &lt;ip&gt; 8080</code> 一条命令拉起全套</li>
+          <li>amd64 / arm64 双架构镜像，适配信创与国产化环境</li>
+          <li>被管端 Agent 支持离线打包，无外网也能采集</li>
+          <li>License 机器绑定 + 离线激活，功能按域授权</li>
+        </ul>
+        <div><span class="chip">一键部署</span><span class="chip">ARM64</span><span class="chip">离线 Agent</span><span class="chip">离线授权</span></div>
+      </div>
+    </div>
+
+    <div class="quote">
+      <p><b>一句话总结差异：</b>Zabbix 解决"我知道出问题了"，ELK 解决"我能查到日志"，JumpServer 解决"谁能登机器"。<b>AutoOps 解决的是"从发现问题到安全地改完，全程在一个地方、留一条证据链"。</b></p>
+      <div class="who">— 产品定位</div>
+    </div>
+  </div>
+</section>
+
+<section id="ai">
+  <div class="wrap">
+    <div class="sec-tag">05 / AI NATIVE</div>
+    <h2>别人的 AI 在页面上，<span class="hl">我们的 AI 在机房</span>里</h2>
+    <p class="sec-sub">接入一个大模型 API 不叫 AIOps。真正的门槛是：AI 能不能拿到你的资产、指标、日志，能不能安全地执行动作，出问题能不能倒查。这三件事，AutoOps 都做完了。</p>
+
+    <div class="flow">
+      <div class="st"><b>1 提问</b><span>Web 助手 / 企业微信，自然语言描述现象</span></div><div class="ar">›</div>
+      <div class="st"><b>2 技能路由</b><span>按意图匹配 14 个技能，确定需要的工具集</span></div><div class="ar">›</div>
+      <div class="st"><b>3 工具调用</b><span>通过 MCP 拉取资产、指标、日志、K8s 状态</span></div><div class="ar">›</div>
+      <div class="st"><b>4 风险判定</b><span>只读直接执行；写操作走二次确认</span></div><div class="ar">›</div>
+      <div class="st"><b>5 归纳结论</b><span>带数据引用与证据链输出根因与建议</span></div><div class="ar">›</div>
+      <div class="st"><b>6 全程留痕</b><span>Run / Step / 证据 / 反馈落库，可回放</span></div>
+    </div>
+
+    <h3>14 个内置技能，按风险分级授权</h3>
+    <div class="tw">
+    <table>
+      <thead><tr><th style="width:18%">技能域</th><th style="width:26%">代表技能</th><th>能做什么</th><th style="width:14%">风险级别</th></tr></thead>
+      <tbody>
+        <tr><td><b>CMDB 技能</b></td><td>资产上下文 · 主机查询</td><td>按业务、分组、IP 定位主机，补齐 CPU/内存/磁盘/标签等上下文</td><td><span class="badge b-y">只读</span></td></tr>
+        <tr><td><b>监控技能</b></td><td>告警总览 · 告警诊断 · 主机压力</td><td>拉当前活跃告警、历史趋势、同环比，判断是单点还是面</td><td><span class="badge b-y">只读</span></td></tr>
+        <tr><td><b>日志技能</b></td><td>主机日志查询</td><td>按时间窗与关键字检索 VictoriaLogs，返回上下文片段</td><td><span class="badge b-y">只读</span></td></tr>
+        <tr><td><b>K8s 技能</b></td><td>Pod 诊断 · Ingress 诊断 · 集群上下文</td><td>看 Pod 事件、重启原因、探针失败、Ingress 后端连通性</td><td><span class="badge b-y">只读</span></td></tr>
+        <tr><td><b>数据库技能</b></td><td>库表概览 · 慢 SQL 分析</td><td>表结构、索引、慢查询 TopN、执行计划建议</td><td><span class="badge b-p">只读 / 低风险</span></td></tr>
+        <tr><td><b>任务技能</b></td><td>异步任务状态 · Runbook 执行</td><td>查任务进度与日志；按预案执行标准处置动作</td><td><span class="badge b-p">需确认</span></td></tr>
+        <tr><td><b>知识技能</b></td><td>知识检索</td><td>命中内部知识库的历史故障、处置手册、SOP</td><td><span class="badge b-y">只读</span></td></tr>
+        <tr><td><b>综合编排</b></td><td>多技能串联</td><td>跨域组合（资产 + 指标 + 日志 + K8s）完成一次完整诊断</td><td><span class="badge b-p">需确认</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="grid3">
+      <div class="dcard"><div class="t">SCENE 01</div><b>值班问答</b><p>"支付服务昨晚是不是有抖动？"——AI 自动对齐时间窗，拉指标、告警、日志，给出时间线而不是一段废话。企业微信里直接问，不用开电脑。</p></div>
+      <div class="dcard"><div class="t">SCENE 02</div><b>根因定位</b><p>告警进来先由 AI 做第一轮收敛：同一宿主机的 8 条告警归并成 1 个事件，附上最可能的根因与证据，值班只看一条。</p></div>
+      <div class="dcard"><div class="t">SCENE 03</div><b>变更辅助</b><p>慢 SQL 分析给索引建议、发布前给出风险清单、变更后对比指标基线。所有建议都标注数据来源，不黑箱。</p></div>
+    </div>
+
+    <div class="quote">
+      <p><b>可审计，才敢用。</b>每一次 AI 调用都记录：用了哪个技能、调了哪些工具、拿到什么数据、做了什么动作、谁确认的。安全团队可以像查操作日志一样查 AI——这是「能进生产」和「只能演示」的分水岭。</p>
+    </div>
+  </div>
+</section>
+
+<section id="scene">
+  <div class="wrap">
+    <div class="sec-tag">06 / VALUE</div>
+    <h2>换成你熟悉的场景，<span class="hl">价值更直观</span></h2>
+    <p class="sec-sub">下面七个场景是大多数运维团队每周都会遇到的。对比不是理论推演，而是"少开几个窗口、少几次人肉对齐"的真实差别。</p>
+
+    <div class="tw">
+    <table>
+      <thead><tr><th style="width:20%">场景</th><th style="width:30%">现有做法（多套系统）</th><th style="width:32%">用 AutoOps</th><th>改变</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>凌晨告警风暴</b></td>
+          <td>Zabbix + Prometheus 双份告警刷群，值班先花 20 分钟判断哪条是真的</td>
+          <td>事件指纹自动去重、静默规则压制、同源告警合并为一个事件，附资产与指标上下文</td>
+          <td>只看 1 条，<b>定位起点从 20 分钟到 2 分钟</b></td>
+        </tr>
+        <tr>
+          <td><b>跨系统排障</b></td>
+          <td>监控看指标 → 日志平台查日志 → 堡垒机登机器 → 翻 CMDB 确认归属，四个系统四个账号</td>
+          <td>告警详情页直接下钻指标、日志、进程、端口，一键开终端，资产信息常驻侧栏</td>
+          <td>窗口数 <b>4 → 1</b>，时间线自动对齐</td>
+        </tr>
+        <tr>
+          <td><b>K8s 故障排查</b></td>
+          <td>kubectl 连集群、翻事件、exec 进容器、再看 JVM 还得另装 Arthas</td>
+          <td>Pod 详情页看事件/日志/监控/历史版本，页面内开终端、传文件，Java 应用直接 Arthas 诊断</td>
+          <td>无需本地 kubeconfig，<b>权限与审计统一</b></td>
+        </tr>
+        <tr>
+          <td><b>数据库变更</b></td>
+          <td>开发发 SQL 到群里，DBA 手工审、手工执行，出事只能靠备份恢复</td>
+          <td>SQL 工单提交 → 自动审核 → 审批 → 执行 → 记录 binlog → 一键回滚</td>
+          <td>变更<b>可审批、可回滚、可追溯</b></td>
+        </tr>
+        <tr>
+          <td><b>等保 / 内控审计</b></td>
+          <td>堡垒机录像、SQL 审计、操作日志分散在三套系统，审计时人工拼证据</td>
+          <td>登录/操作/命令/录像四层审计同源，按人、按资产、按时间一键导出</td>
+          <td>准备材料<b>从数天到数小时</b></td>
+        </tr>
+        <tr>
+          <td><b>新人上手</b></td>
+          <td>要学 5 套系统的菜单与术语，问老员工要账号、要文档</td>
+          <td>一个界面、一套术语、一套权限；AI 助手可直接回答"这台机器是干什么的"</td>
+          <td>上手周期<b>从周级到天级</b></td>
+        </tr>
+        <tr>
+          <td><b>云成本失控</b></td>
+          <td>每月登 5 个云控制台导账单，Excel 手工合并，没人说得清钱花在哪</td>
+          <td>五云账单自动同步，按产品/标签/月份聚合，余额预警，异常增长可见</td>
+          <td>成本<b>可归因、可预警</b></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="mini">上述时间与窗口数为场景化描述，用于说明流程差异；具体收益取决于存量系统复杂度与团队规模，可在 POC 阶段按你们的实际链路做基线测量。</p>
+
+    <h3>三类角色，各自能得到什么</h3>
+    <div class="grid3">
+      <div class="dcard"><div class="t">运维工程师</div><b>少切系统，少背锅</b><p>排障在一个页面完成；危险操作有审批与回滚兜底；值班有 AI 做第一轮收敛，夜里少被无效告警叫醒。</p></div>
+      <div class="dcard"><div class="t">运维 / 技术负责人</div><b>看得见，管得住</b><p>资产、告警、变更、成本四张视图统一；谁在什么时候改了什么都查得到；团队能力不依赖个别老员工。</p></div>
+      <div class="dcard"><div class="t">安全 / 合规</div><b>权限收口，证据完整</b><p>一套 RBAC + LDAP/SSO；终端录像、命令审计、SQL 工单、操作日志同源；私有化部署，数据不出内网。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="wrap">
+    <div class="sec-tag">07 / ARCHITECTURE</div>
+    <h2>架构简单到<span class="hl">一个人能维护</span>，能力却覆盖全栈</h2>
+    <p class="sec-sub">单体应用是刻意的选择：没有微服务的服务发现、链路追踪、分布式事务负担，一个二进制 + MySQL + Redis 就能跑起来；需要扩展时，日志与指标组件可独立横向扩容。</p>
+
+    <div class="arch">
+      <svg viewBox="0 0 1080 470" width="100%" role="img" aria-label="AutoOps 架构图" style="font-family:'PingFang SC','Microsoft YaHei',sans-serif">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0f2b52"/><stop offset="1" stop-color="#2f6bff"/></linearGradient>
+          <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c9971f"/><stop offset="1" stop-color="#e8c86a"/></linearGradient>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="4.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#b9c7da"/></marker>
+        </defs>
+        <rect x="0" y="0" width="1080" height="470" fill="#fbfcfe" rx="10"/>
+
+        <rect x="40" y="18" width="1000" height="58" rx="10" fill="url(#g1)"/>
+        <text x="60" y="43" font-size="13" fill="#fff" font-weight="700">统一 Web 门户（Vue 3 · Element Plus）</text>
+        <text x="60" y="63" font-size="11" fill="#c6d9f5">资产 · 监控 · 日志 · 终端 · K8s · 数据库 · 工单 · 成本 · AI 助手 —— 单页应用，单点登录</text>
+        <text x="880" y="52" font-size="11" fill="#a9c6ef">HTTPS / WebSocket / SSE</text>
+        <line x1="540" y1="76" x2="540" y2="96" stroke="#b9c7da" stroke-width="2" marker-end="url(#ar)"/>
+
+        <rect x="40" y="96" width="1000" height="44" rx="8" fill="#eef3fb" stroke="#d9e4f5"/>
+        <text x="60" y="123" font-size="12" fill="#0f2b52" font-weight="700">API 网关层</text>
+        <text x="170" y="123" font-size="11" fill="#41546f">JWT 三态鉴权 · RBAC · License 闸门 · 操作审计 · K8s 六级动作授权 · 限流与访客只读</text>
+        <line x1="540" y1="140" x2="540" y2="160" stroke="#b9c7da" stroke-width="2" marker-end="url(#ar)"/>
+
+        <g font-size="11" fill="#0f2b52" font-weight="600" text-anchor="middle">
+          <rect x="40" y="160" width="152" height="34" rx="6" fill="#fff" stroke="#2f6bff" stroke-width="1.4"/><text x="116" y="182">CMDB / 堡垒机</text>
+          <rect x="202" y="160" width="152" height="34" rx="6" fill="#fff" stroke="#2f6bff" stroke-width="1.4"/><text x="278" y="182">监控 / 告警引擎</text>
+          <rect x="364" y="160" width="152" height="34" rx="6" fill="#fff" stroke="#2f6bff" stroke-width="1.4"/><text x="440" y="182">日志平台</text>
+          <rect x="526" y="160" width="152" height="34" rx="6" fill="#fff" stroke="#2f6bff" stroke-width="1.4"/><text x="602" y="182">K8s / Arthas</text>
+          <rect x="688" y="160" width="152" height="34" rx="6" fill="#fff" stroke="#2f6bff" stroke-width="1.4"/><text x="764" y="182">数据库 / 工单</text>
+          <rect x="850" y="160" width="190" height="34" rx="6" fill="#fff" stroke="#2f6bff" stroke-width="1.4"/><text x="945" y="182">任务 / 成本 / 系统管理</text>
+
+          <rect x="40" y="204" width="240" height="34" rx="6" fill="#f3efff" stroke="#d9cdfa"/><text x="160" y="226" fill="#553ac2">AI 中枢：MCP Server · Skill 注册表</text>
+          <rect x="290" y="204" width="240" height="34" rx="6" fill="#f3efff" stroke="#d9cdfa"/><text x="410" y="226" fill="#553ac2">Agent Run：规划 · 工具 · 证据</text>
+          <rect x="540" y="204" width="200" height="34" rx="6" fill="#eaf7f9" stroke="#c9ebf0"/><text x="640" y="226" fill="#0a7c8a">知识库 / 检索</text>
+          <rect x="750" y="204" width="290" height="34" rx="6" fill="#eef3fb" stroke="#d9e4f5"/><text x="895" y="226">审计 / 通知 / 定时调度</text>
+        </g>
+        <text x="40" y="258" font-size="10.5" fill="#93a1b3">分层约定：controller → service → dao → model；service 内承载告警引擎、任务队列、Agent 编排等常驻能力</text>
+        <line x1="540" y1="266" x2="540" y2="286" stroke="#b9c7da" stroke-width="2" marker-end="url(#ar)"/>
+
+        <g font-size="11" fill="#fff" text-anchor="middle" font-weight="600">
+          <rect x="40" y="286" width="180" height="38" rx="6" fill="#0f2b52"/><text x="130" y="310">MySQL（业务数据）</text>
+          <rect x="232" y="286" width="180" height="38" rx="6" fill="#0f2b52"/><text x="322" y="310">Redis（缓存/队列）</text>
+          <rect x="424" y="286" width="180" height="38" rx="6" fill="#0f2b52"/><text x="514" y="310">VictoriaMetrics</text>
+          <rect x="616" y="286" width="180" height="38" rx="6" fill="#0f2b52"/><text x="706" y="310">VictoriaLogs</text>
+          <rect x="808" y="286" width="232" height="38" rx="6" fill="#0f2b52"/><text x="924" y="310">Kafka / Vector 采集链</text>
+        </g>
+        <line x1="540" y1="324" x2="540" y2="344" stroke="#b9c7da" stroke-width="2" marker-end="url(#ar)"/>
+
+        <g font-size="10.5" fill="#41546f" text-anchor="middle">
+          <rect x="40" y="344" width="150" height="42" rx="6" fill="#fff" stroke="#dde6f2"/><text x="115" y="362">Linux / Windows</text><text x="115" y="377" font-size="9.5" fill="#93a1b3">离线 Agent / Exporter</text>
+          <rect x="200" y="344" width="150" height="42" rx="6" fill="#fff" stroke="#dde6f2"/><text x="275" y="362">K8s 集群</text><text x="275" y="377" font-size="9.5" fill="#93a1b3">kubeconfig · client-go</text>
+          <rect x="360" y="344" width="150" height="42" rx="6" fill="#fff" stroke="#dde6f2"/><text x="435" y="362">公有云 ×6</text><text x="435" y="377" font-size="9.5" fill="#93a1b3">ECS / 账单 / DNS / 证书</text>
+          <rect x="520" y="344" width="150" height="42" rx="6" fill="#fff" stroke="#dde6f2"/><text x="595" y="362">数据库 ×5</text><text x="595" y="377" font-size="9.5" fill="#93a1b3">MySQL/PG/Redis/Mongo/ES</text>
+          <rect x="680" y="344" width="150" height="42" rx="6" fill="#fff" stroke="#dde6f2"/><text x="755" y="362">网络 / 中间件</text><text x="755" y="377" font-size="9.5" fill="#93a1b3">SNMP · Kafka/ZK/ES/Nginx</text>
+          <rect x="840" y="344" width="200" height="42" rx="6" fill="#fff" stroke="#dde6f2"/><text x="940" y="362">LLM / 飞书 / 企业微信</text><text x="940" y="377" font-size="9.5" fill="#93a1b3">多 Provider · 长连接</text>
+        </g>
+
+        <rect x="40" y="404" width="1000" height="50" rx="8" fill="url(#g2)" opacity="0.14"/>
+        <rect x="40" y="404" width="4" height="50" rx="2" fill="#c9971f"/>
+        <text x="60" y="424" font-size="11.5" fill="#7a6015" font-weight="700">交付形态</text>
+        <text x="60" y="443" font-size="11" fill="#6b5a20">单机 Docker Compose 一键部署 · amd64 / arm64 双架构镜像 · 完全离线内网运行 · 机器绑定 License 离线激活 · 可选 K8s 部署</text>
+      </svg>
+    </div>
+
+    <h3>参考部署规格</h3>
+    <div class="tw">
+    <table>
+      <thead><tr><th style="width:20%">规模档位</th><th style="width:24%">配置建议</th><th style="width:20%">纳管规模（参考）</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><b>试用 / POC</b></td><td>4C 8G / 200G SSD 单机</td><td>≤ 100 台主机</td><td>全部组件（含 MySQL / Redis / VM / VL）单机 compose，30 分钟可跑通</td></tr>
+        <tr><td><b>中小规模生产</b></td><td>8C 16G / 500G SSD<br>（MySQL、Redis 建议独立）</td><td>100 ~ 500 台主机<br>3 ~ 5 个 K8s 集群</td><td>日志量 ≤ 50 GB/天；指标保留 30 天，日志保留 14~30 天</td></tr>
+        <tr><td><b>较大规模</b></td><td>16C 32G × 2~3 节点<br>日志/指标组件独立扩容</td><td>500 ~ 2000 台主机</td><td>Kafka 缓冲削峰；VictoriaLogs / VictoriaMetrics 横向扩展；应用可多副本</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="mini">以上为工程经验参考值，实际以采集指标数、日志写入量、保留周期为准；可在 POC 阶段按真实数据量校准。支持信创环境（ARM64 + 国产 OS 适配）。</p>
+
+    <div class="grid2">
+      <div class="dcard"><div class="t">技术栈</div><b>Go 1.25 + Vue 3.5，全栈可读可改</b><p>后端 Gin + GORM，前端 Vue3 + Element Plus，均为国内主流技术栈，招人容易、二开成本低。全量源码交付，不锁死。</p></div>
+      <div class="dcard"><div class="t">兼容性</div><b>不替换你现有的 exporter</b><p>指标侧兼容 PromQL 与 Prometheus exporter；日志侧支持标准采集协议；云上资源通过官方 SDK 接入，不要求改造业务。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="deliver">
+  <div class="wrap">
+    <div class="sec-tag">08 / DELIVERY</div>
+    <h2>三种交付方式，<span class="hl">总有一种能进你的机房</span></h2>
+    <p class="sec-sub">不要求公网、不强制上云、不绑定特定硬件。内网、专网、信创环境都有对应方案。</p>
+
+    <div class="grid3">
+      <div class="dcard"><div class="t">OPTION 01</div><b>私有化部署授权</b><p>交付镜像与部署脚本，客户环境内网安装。机器绑定 License 离线激活，按功能域与节点数授权，含升级支持。</p></div>
+      <div class="dcard"><div class="t">OPTION 02</div><b>源码授权 + 二次开发</b><p>全量 Go / Vue 源码交付，可用于内部定制与集成。适合有研发团队、需要对接自有 CMDB、审批流或门户的客户。</p></div>
+      <div class="dcard"><div class="t">OPTION 03</div><b>定制开发与托管运维</b><p>按场景做定制（行业模板、专有设备接入、报表口径），或由我方承担平台侧运维值守与版本升级。</p></div>
+    </div>
+
+    <h3>从现有系统迁过来，不需要"一刀切"</h3>
+    <div class="flow">
+      <div class="st"><b>第 1 步 · 并行接入</b><span>先接资产与只读监控，旧系统继续跑，零风险验证数据准确性</span></div><div class="ar">›</div>
+      <div class="st"><b>第 2 步 · 告警切换</b><span>新规则在 AutoOps 建好并与旧告警并行观察 1~2 周，确认无漏报后关旧通道</span></div><div class="ar">›</div>
+      <div class="st"><b>第 3 步 · 日志双写</b><span>Vector 采集与旧采集器并行，检索验证一致后停旧链路</span></div><div class="ar">›</div>
+      <div class="st"><b>第 4 步 · 堡垒机收口</b><span>账号与授权导入，终端入口统一切到 AutoOps，旧堡垒机转只读留档</span></div>
+    </div>
+    <p class="mini">整个过程可以按子系统灰度，不需要停机窗口；每一步都可回退到原系统。</p>
+
+    <h3>产品路线图（公开承诺部分）</h3>
+    <div class="tw">
+    <table>
+      <thead><tr><th style="width:24%">方向</th><th style="width:20%">状态</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><b>AI 技能扩展</b></td><td><span class="badge b-s">持续迭代</span></td><td>技能以目录形式声明，新增场景不需要改核心代码，可按行业沉淀（数据库、中间件、网络设备）</td></tr>
+        <tr><td><b>K8s HPA / 一键部署</b></td><td><span class="badge b-p">规划中</span></td><td>弹性伸缩策略配置、集群部署编排</td></tr>
+        <tr><td><b>网络设备配置下发</b></td><td><span class="badge b-p">规划中</span></td><td>交换机配置模板、批量下发与回滚（当前已支持监控与终端）</td></tr>
+        <tr><td><b>告警智能降噪</b></td><td><span class="badge b-p">规划中</span></td><td>基于历史事件的相关性聚类，进一步压缩告警数量</td></tr>
+        <tr><td><b>多租户</b></td><td><span class="badge b-n">评估中</span></td><td>面向 MSP / 集团多子公司场景的租户隔离</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>它适合谁，不适合谁</h3>
+    <div class="grid2">
+      <div class="panel-like dcard" style="border-left:4px solid var(--green)">
+        <div class="t" style="color:var(--green)">SUITABLE</div><b>适合</b>
+        <p>· 50 ~ 2000 台主机、VM 与 K8s 并存的混合环境<br>· 有多云资源、需要统一账单与资产视图<br>· 有等保/内控要求，需要终端录像与 SQL 审计<br>· 希望用 AI 提升排障效率，但不能接受"黑箱自动化"<br>· 内网/专网环境，要求私有化与离线交付</p>
+      </div>
+      <div class="dcard" style="border-left:4px solid var(--amber,#b45309)">
+        <div class="t" style="color:#b45309">NOT YET</div><b>暂不最适合</b>
+        <p>· 万台以上、需要多层分布式架构的超大规模场景（建议先做 POC 压测）<br>· 纯 K8s、无传统主机的团队（KubeSphere / Rancher 更聚焦）<br>· 只需要单一能力（只要监控、只要日志）——用专用工具更划算<br>· 要求开箱即用的 SaaS 多租户托管</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-tag">09 / FAQ</div>
+    <h2>选型时最常被问到的<span class="hl">六个问题</span></h2>
+
+    <div class="faq">
+      <details open>
+        <summary>和直接上 Zabbix + ELK + JumpServer 比，省下的钱够覆盖平台成本吗？</summary>
+        <p>这三套系统本身免费，但成本在别处：服务器资源（ELK 尤其重）、至少 3 套的部署与升级维护、跨系统的账号与权限对齐、以及每次排障时人工拼接时间线的时间。AutoOps 用一套应用 + 一个 MySQL + 一个 Redis 起步，日志与指标底座用 VictoriaMetrics/VictoriaLogs，单机即可承载中小规模数据；真正的节省来自"少维护 5 套系统"和"排障链路缩短"。建议用你们现有的主机数、日志量、值班人力做一次对照测算。</p>
+      </details>
+      <details>
+        <summary>我们已经有一套 Prometheus 和 exporter，需要推倒重来吗？</summary>
+        <p>不需要。指标侧兼容 PromQL，现有 exporter 与采集方式可以保留，AutoOps 作为查询、告警、展示与流程层接入；日志侧支持标准采集协议，可先双写并行验证。平台的价值在于把指标与资产、日志、变更、工单关联起来，而不是替换你的采集端。</p>
+      </details>
+      <details>
+        <summary>AI 会不会乱操作生产环境？</summary>
+        <p>不会。技能按风险分级：只读类（查资产、查指标、查日志）可直接执行；写操作（执行命令、重启、变更）必须走二次确认，并且确认人、动作、参数、结果全部落库。所有 Agent 运行都有 Run/Step 记录与证据引用，可回放、可追责。你也可以选择只启用只读技能。</p>
+      </details>
+      <details>
+        <summary>私有化部署后，AI 功能还能用吗？</summary>
+        <p>可以。LLM Provider 在平台内配置（支持 OpenAI 兼容协议及国内主流模型服务），既可接入内网自建模型，也可配置代理访问外部 API；不配置模型时，平台的监控、日志、堡垒机、工单等能力完全不受影响。</p>
+      </details>
+      <details>
+        <summary>支持国产化 / 信创环境吗？</summary>
+        <p>支持 ARM64 架构（提供 arm64 镜像与一键部署脚本），可运行在国产 Linux 发行版上；被管端 Agent 支持离线打包，适合无外网环境。具体 OS 与芯片组合建议在 POC 阶段做一次适配验证。</p>
+      </details>
+      <details>
+        <summary>数据量和规模上限在哪？</summary>
+        <p>单体架构在 500~2000 台主机、日志 50~200 GB/天的量级内表现良好（取决于硬件与保留周期）。超过这个量级建议把 VictoriaMetrics / VictoriaLogs / Kafka 独立部署并横向扩容，应用侧可多副本 + 前置负载均衡。超大规模（万台以上）建议先做专项压测评估。</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="cta" id="contact">
+    <h2>让运维回到"一个平台"</h2>
+    <p>在线体验环境已开放，也可以直接拉源码在本机 30 分钟跑起来。想看清楚它和你们现有架构的差别，我们可以按你的真实场景做一次对照演示。</p>
+    <div class="contact">
+      <div class="contact-item"><b>GITHUB</b>github.com/opsre/AutoOps</div>
+      <div class="contact-item"><b>在线体验</b>autoops.com.cn（test / 123456）</div>
+      <div class="contact-item"><b>安装视频</b>B 站 BV179Wxz1Ez6</div>
+      <div class="contact-item"><b>微信</b>zf5391621</div>
+      <div class="contact-item"><b>邮箱</b>zfwh1024@163.com</div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <div><b>AutoOps 全栈运维平台 · 产品能力白皮书</b><br>天枢 AutoOps · v5 · 2026-11</div>
+  <div style="text-align:right">一个平台 · 一套账号 · 一条审计链<br>本文件为单页离线文档，可直接分享或打印为 PDF</div>
+</div>
+
+<script>
+(function(){
+  // 平滑滚动已由 CSS 承担；此处仅处理 details 手风琴（同一时间只展开一个）
+  var items = document.querySelectorAll('.faq details');
+  items.forEach(function(d){
+    d.addEventListener('toggle', function(){
+      if(d.open){ items.forEach(function(o){ if(o!==d) o.open=false; }); }
+    });
+  });
+})();
+</script>
+</body>
+</html>
