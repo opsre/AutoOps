@@ -146,7 +146,7 @@ DevOps运维管理系统优势：
 </details>
 
 ### 测试环境
-http://autoops.com.cn/   
+https://autoops.xin/dashboard  
 账号：test
 密码：123456
 ### 视频安装使用介绍
