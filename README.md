@@ -1,154 +1,228 @@
-# AutoOps 天枢
+# 天枢AutoOps运维管理系统
 
-**把基础设施、可观测、自动化和日常运维流程放进同一个工作台。**
+## 项目简介
 
-AutoOps 天枢是一套开源、支持私有化部署的运维管理平台，面向运维与 SRE 团队。平台以 CMDB 作为资源上下文，将主机与云资源、Kubernetes、日志告警、数据库、任务工单和 AIOps 接入统一控制面，并共享身份、权限、凭据与审计能力。
+天枢AutoOps运维管理系统(枢=枢纽+中心)是一个基于 Go + vue3 框架开发的企业级运维自动化平台，提供以下核心能力主机管理、配置中心、任务调度、K8s集群管理、监控告警等功能模块。统一平台，全栈治：打破 CI/CD、监控、CMDB、K8s、工单等系统孤岛，数据互通、策略统. 最终实现把常用的运维工具全部集成在一起，比如夜莺，jenkins，jumpserver，kuboard，cmdb，Archery，等等，实现运维自动化。
+![alt text](assets/jg.png)
 
-| 在线测试环境 | 测试账号 | 当前部署版本 |
-| --- | --- | --- |
-| [打开 AutoOps 测试环境](https://autoops.xin/dashboard) | `test` / `123456` | `v6.0` |
+## 功能清单
 
-官网文档：[功能说明](https://autoops.xin/features.html) · [部署指南](https://autoops.xin/deploy.html) · [更新记录](https://autoops.xin/updates.html)
 
-## 当前能力
+| 功能模块 | 功能项 | 状态 |
+|---------|--------|------|
+| **CMDB资产管理** | 主机管理 | ✅ |
+| | 主机管理-阿里-腾讯-百度-华为-跳板机 | ✅ |
+| | 云密钥管理 | ✅ |
+| | 主机终端管理 | ✅ |
+| | 五类数据库管理(MySQL/PgSQL/Redis/ES/MongoDB) | ✅ |
+| | windows 主机管理 | 🚧规划中 |
+| | windows 远程桌面-guacamole | 🚧规划中 |
+| | 交换机配置管理  | 🚧规划中 |
+| **Kubernetes集群管理** | 多集群管理 | ✅ |
+| | 节点管理 | ✅ |
+| | Pod容器管理 | ✅ |
+| | 容器配置-存储-配置-网络-路由管理 | ✅ |
+| | K8s监控功能 | 🚧 规划中 |
+| | K8s集群HPA自动扩缩容 | 🚧 规划中 |
+| | K8s集群一键部署  | 🚧 规划中 |
+| **服务管理** | 应用管理 | ✅ |
+| | 应用快速发布-对接Jenkins可视化快速发布 | ✅ |
+| | 应用工单上线流程发布 | ✅ |
+| | 应用脚本上线工单 | ✅ |
+| | 应用管理全局视图 | 🚧 开发中 |
+| **监控中心** | 域名监控 | ✅ |
+| | 主机基础资源监控 | ✅ |
+| | 主机告警 | 🚧 开发中 |
+| | 故障管理 | ✅ |
+| | 数据库告警 | 🚧 开发中 |
+| | 告警推送 | 🚧 开发中 |
+| | 域名SSL证书申请 | 🚧 开发中 |
+| **任务中心** | 定时任务 | ✅ |
+| | 普通脚本任务(Shell/Python) | ✅ |
+| | Ansible Playbook任务 | ✅ |
+| **运维工具** | 常用运维资源安装 | ✅ |
+| | Agent监控工具安装 | ✅ |
+| **配置中心** | 主机凭据管理 | ✅ |
+| | 通用资源账号管理 | ✅ |
+| | 云资源密钥管理 | ✅ |
+| **操作审计** | 登录日志审计 | ✅ |
+| | 操作日志审计 | ✅ |
+| | 数据库操作审计 | ✅ |
+| | 终端录像审计 | 🚧 开发中 |
+| **系统管理** | 用户管理 | ✅ |
+| | 角色管理-RBAC授权 | ✅ |
+| | 菜单管理-菜单-路由-按钮权限管理 | ✅ |
+| | 部门管理 | ✅ |
+| | LDAP认证集成管理 | ✅ |
+| | 飞书-钉钉-微信-邮件集成 | 🚧 开发中 |
+| **后续开发功能** | SQL工单系统 | 📋 规划中 |
+| | 运维工单系统 | 📋 规划中 |
+| | 运维全局巡检报告 | 📋 规划中 |
+| | 优化运维仪表盘 | ✅ 完成 |
+| | 运维知识库开发-Markdown写入-展示 | 📋 规划中 |
+| | AI大模型分析功能 | 📋 规划中 |
 
-以下清单依据当前 `autoops-web` 页面路由、`autoops-api` 接口和官网功能说明整理。
 
-### CMDB、资产与堡垒机
-
-- **主机资产**：主机列表、分组、详情、批量导入导出、资源使用监控、健康状态和资产大屏。
-- **云资源同步**：支持阿里云、腾讯云、百度云、华为云、AWS 和火山引擎等云账号及云主机管理。
-- **机房与网络设备**：IDC、机房机柜、交换机资产、SNMP 监控和网络设备 SSH 终端。
-- **Windows 主机**：Windows 主机详情与远程连接相关管理。
-- **业务模型**：服务与资产绑定、业务拓扑、健康快照、关联日志分析和监控告警。
-- **远程访问**：SSH 终端、SFTP 文件传输、RDP 远程桌面；支持 JumpServer 资产接入及主机授权。
-- **Agent 管理**：探针部署、状态与心跳管理；支持在线部署和离线二进制上传部署。
-- **巡检与治理**：主机巡检、资产分析和资源治理视图。
-- **凭据与密钥**：主机凭据、通用账号凭据、云资源密钥和访问授权。
-
-### Kubernetes
-
-- **集群与资源**：多集群、节点、命名空间、事件、Deployment、Pod、Service、Ingress、PVC、PV、StorageClass、ConfigMap 和 Secret。
-- **工作负载操作**：扩缩容、重启、暂停、恢复、回滚、驱逐等管理操作。
-- **容器运维**：Pod 实时日志、终端、文件管理、Bash / Sh 连接和测试 Pod。
-- **配置与网络**：资源 YAML 查看和校验、网络资源、存储资源及配置管理。
-- **监控与诊断**：集群监控、集群巡检、应用诊断和 Arthas 诊断。
-
-### 监控、日志与告警
-
-- **统一监控**：主机、Kubernetes、交换机及数据库和中间件监控；主机监控详情、仪表盘和监控大屏。
-- **指标采集**：Agent 采集和监控数据源管理；支持 All-in-One 采集主机、MySQL、PostgreSQL 与 Redis 数据。
-- **日志管理**：日志项目与存储库、解析模板、Vector Agent、采集任务、Kubernetes 日志采集和采集器管理。
-- **日志查询**：日志检索、业务访问日志、数据库慢日志、日志链路、日志预览和采集日志详情。
-- **告警管理**：告警数据源、规则、模板、事件、静默、通知、日志告警和告警大屏。
-- **域名与 API**：域名监控、故障管理和 API 监控；提供证书申请及部署相关能力。
-- **通知渠道**：支持飞书、钉钉、企业微信和邮件等通知配置。
-
-### 数据库与云成本
-
-- **数据库资产**：MySQL、PostgreSQL、Redis、Elasticsearch 和 MongoDB 资产管理与连接管理。
-- **SQL 运维**：SQL 查询、补全、执行历史和结果导出；支持 DML、DDL 与查询审核、审批、执行及回滚。
-- **数据库治理**：数据库监控、慢日志、备份、巡检和数据库 AI 助手。
-- **云成本**：多云账号、账单同步、账单总览、费用趋势与分布、余额告警和账单明细。
-
-### 任务、作业与工单
-
-- **任务调度**：脚本任务、任务模板、定时调度、Ansible Playbook、Kubernetes 任务和运行监控。
-- **作业管理**：运维作业管理、执行状态、队列指标和运行日志。
-- **工单审批**：审批工作台、日常事务工单、审批流配置和工单状态跟踪。
-- **应用发布**：Jenkins 发布工单与应用发布流程；支持执行、重试、中止和查看构建日志。
-- **SQL 工单**：数据库 SQL 审核工单与审批执行流程。
-
-### AIOps
-
-- **智能助手**：结合主机、告警、数据库和 Kubernetes 上下文进行运维问答与分析。
-- **分析与巡检**：主机及 Kubernetes 日志分析、资源分析、巡检和告警分析。
-- **模型与知识**：模型提供商配置、运维知识库和声明式 Skill 管理。
-- **MCP 工具**：MCP 服务和工具目录管理、工具配置及受控操作。
-- **Agent 运行**：Agent Run 状态、流式结果和运行记录。
-
-### 系统管理与审计
-
-- **身份权限**：用户、角色、部门、岗位、菜单和按钮权限管理；支持 LDAP 配置与认证。
-- **访问控制**：访客只读权限、堡垒机主机授权和连接前权限检查。
-- **操作审计**：登录日志、操作日志、活动记录、终端会话录像、命令审计和敏感命令风险记录。
-
-### v6.0 更新重点
-
-- 优化 AI 助手分析流程及 Kubernetes AI 分析结果。
-- 增加主机一键巡检、资产分析与资源治理视图。
-- 支持上传离线 Agent 二进制并按目标主机架构部署。
-- 增强日志采集器配置、异常提醒、日志预览和采集详情。
-- 增强多厂商交换机监控和交换机 SSH 终端。
-- 增加覆盖主机、Kubernetes、交换机和数据库中间件的统一监控大屏。
-
-更详细的模块说明见[官网功能说明](https://autoops.xin/features.html)和[更新记录](https://autoops.xin/updates.html)。
-
-## 项目组成
-
-| 项目 | 说明 | 仓库 |
-| --- | --- | --- |
-| **AutoOps** | 部署脚本、Docker Compose 配置与项目介绍 | [GitHub](https://github.com/opsre/AutoOps) |
-| **autoops-api** | Go / Gin 后端 API、调度与运维服务 | [Gitee](https://gitee.com/zhang_fan1024/autoops-api) |
-| **autoops-web** | Vue 3 / Element Plus 管理工作台 | [Gitee](https://gitee.com/zhang_fan1024/autoops-web) |
-| **autoops-site** | 产品官网、功能说明、部署指南与更新记录 | [Gitee](https://gitee.com/zhang_fan1024/autoops-site) |
-
-部署包通过 Docker Compose 编排 Web、API、MySQL、Redis、VictoriaMetrics、VictoriaLogs、Kafka 和 Vector。前后端使用 Go 与 Vue 3 构建。
-
-## 快速部署
-
-需要一台 Linux 主机、Docker 20.10 或更高版本，以及 Docker Compose 2.0 或更高版本。4 核 CPU、4 GB 内存适用于体验和小规模部署；生产环境请根据资产规模、指标保留时间和日志吞吐规划资源。
-
-```bash
-git clone https://github.com/opsre/AutoOps.git
-cd AutoOps/docker
-chmod +x devops-start.sh devops-stop.sh
-./devops-start.sh v6.0 <服务器IP或域名> 8080
-```
-
-启动脚本会拉取镜像、生成运行配置并启动服务。部署完成后访问 `http://<服务器IP或域名>:8080`，初始管理员账号为 `admin`，初始密码为 `123456`。首次登录后请立即修改密码。
-
-```bash
-# 查看容器状态
-docker compose ps
-
-# 查看实时日志
-docker compose logs -f
-
-# 停止服务并保留持久化数据
-./devops-stop.sh
-```
-
-启动脚本还支持自定义 API、MySQL、Redis、VictoriaMetrics、VictoriaLogs 和 Kafka 端口。镜像预拉取、端口参数、服务清单及更新方式见[完整部署指南](https://autoops.xin/deploy.html)。
-
-## 资源
-
-- 在线测试环境：[https://autoops.xin/dashboard](https://autoops.xin/dashboard)（账号：`test`，密码：`123456`）
-- 产品官网：[https://autoops.xin/](https://autoops.xin/)
-- 功能说明：[https://autoops.xin/features.html](https://autoops.xin/features.html)
-- 更新记录：[https://autoops.xin/updates.html](https://autoops.xin/updates.html)
-- 安装与使用视频：[哔哩哔哩](https://www.bilibili.com/video/BV179Wxz1Ez6/)
-
-## 联系与交流
-
-- 技术交流微信：`zf5391621`
-- 建议邮箱：`zfwh1024@163.com`
+### 优势对比
 
 <details>
-<summary>鸣谢项目支持者</summary>
+<summary><b>🔍 点击展开优势对比详情</b></summary>
+
+#### DevOps运维管理系统优势
+✅ **轻量级** - 单体应用，部署简单，资源占用少
+✅ **全栈运维** - 同时管理传统主机和K8s集群，无需多套系统
+✅ **开箱即用** - 内置CMDB、任务调度、SQL审计等企业级功能
+✅ **二次开发友好** - Go语言，代码结构清晰，易于定制
+✅ **成本低** - 无商业授权费用，适合中小企业
+✅ **中文友好** - 国内开发，文档和支持更贴合国内使用习惯
+
+## 核心竞争力分析
+与传统运维平台相比，本系统在**自动化程度**、**一体化整合**、**可观测性**、**安全合规**、**扩展性与智能化演进**等维度展现显著优势：
+
+---
+
+### 1️⃣ 高度集成的一体化架构
+
+| 对比维度 | 传统平台 | DevOps运维管理系统 |
+|---------|---------|------------------|
+| **系统构成** | 多个孤立工具拼凑（Zabbix + Ansible + CMDB） | 统一平台深度整合 |
+| **数据流转** | 数据割裂，需手动同步 | 数据打通，实时联动 |
+| **操作体验** | 多系统切换，操作繁琐 | 一个系统管全部，协同高效 |
+| **核心价值** | ❌ 信息孤岛严重 | ✅ 消除信息孤岛，提升协同效率 |
+
+---
+
+### 2️⃣ 面向云原生的深度支持
+
+| 对比维度 | 传统平台 | DevOps运维管理系统 |
+|---------|---------|------------------|
+| **技术栈** | 聚焦物理机/虚拟机 | 原生支持Kubernetes |
+| **容器管理** | 支持薄弱或需插件 | 多集群管理、Pod/配置/网络/存储全要素管控 |
+| **弹性伸缩** | 手动或简单脚本 | HPA自动扩缩容（规划中） |
+| **核心价值** | ❌ 云原生支持不足 | ✅ 贴合现代微服务与容器化架构 |
+
+---
+
+### 3️⃣ 发布与工单流程深度融合
+
+| 对比维度 | 传统平台 | DevOps运维管理系统 |
+|---------|---------|------------------|
+| **发布方式** | 手动脚本或简单CI | Jenkins可视化快速发布 |
+| **变更管控** | 缺乏审批流程 | 工单审批流程 + 脚本上线工单 |
+| **可追溯性** | 记录不完整 | 全流程可视化 + 操作审计 |
+| **核心价值** | ❌ 审批、追溯能力弱 | ✅ 兼顾敏捷性与合规性 |
+
+---
+
+### 📊 总结对比
+
+```
+传统运维平台痛点：
+├─ 🔴 工具碎片化 → 多系统切换，数据孤岛
+├─ 🔴 流程不闭环 → 发布、审批、审计分离
+├─ 🔴 云原生支持弱 → 难以适配容器化架构
+└─ 🔴 智能化缺失 → 依赖人工经验判断
+
+DevOps运维管理系统优势：
+├─ 🟢 一体化设计 → 统一平台，数据打通
+├─ 🟢 云原生原生支持 → K8s深度集成
+├─ 🟢 合规审计 → 完整操作追溯
+└─ 🟢 智能化演进 → AIOps技术前瞻性
+```
+
+> **💡 核心定位**：构建**高效、安全、可扩展且面向未来**的新一代智能运维中枢，远超传统运维平台的能力边界。
+
+### 适用场景建议
+
+| 场景 | 推荐方案 |
+|------|---------|
+| 中小企业混合环境（VM + K8s） | **DevOps运维管理系统** |
+| 纯K8s环境，预算充足 | KubeSphere 或 Rancher |
+| 多云多集群大规模部署 | Rancher |
+| 国内企业，注重云原生完整性 | KubeSphere |
+| 快速上线，资源有限 | **DevOps运维管理系统** |
+| 需要传统运维+容器化双轨并行 | **DevOps运维管理系统** |
+
+</details>
+
+### 测试环境
+http://autoops.com.cn/   
+账号：test
+密码：123456
+### 视频安装使用介绍
+https://www.bilibili.com/video/BV179Wxz1Ez6/?vd_source=37f81c1b36b3818cbad621bcbe5c3e49
+![alt text](assets/b站.png)
+
+
+## 安装步骤
+docker一键安装
+
+#### 拉取镜像(可选,首次部署会自动拉取)
+```bash
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/deviops-web:v6.0 
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/deviops-api:v6.0 
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/mysql:8.0.33 
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/redis:6.2 
+docker pull  crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/victoria-metrics:latest
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/victoria-logs:latest 
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/kafka:4.0.0    
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/vector:latest-debian 
+```
+
+```bash
+# 脚本+镜像版本+ip+前端端口
+cd /root/deviops/docker
+./devops-start.sh  v6.0   ip     8080
+```
+
+
+```bash
+### 2. 查看服务状态
+docker-compose ps
+### 3. 查看服务日志
+docker-compose logs -f
+### 4.访问服务
+Web 前端: http://localhost:8080
+默认账号: admin / 123456
+```
+
+```bash
+# arm64 安装镜像，-arm64 标识的镜像下载到本地后把镜像-arm64  去掉重新运行一键部署脚本即可。
+# docker tag   xxxx:镜像版本-arm64    xxxx:镜像版本
+docker  push    crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/vector:latest-debian-arm64
+docker  push    crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/redis:6.2-arm64 
+docker  push    crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/victoria-metrics:latest-arm64
+docker  push    crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/victoria-logs:latest-arm64  
+docker  push    crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/mysql:8.0.33-arm64 
+docker  push    crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/kafka:4.0.0-arm64     
+docker  push    crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/deviops-api:v6.0-arm64
+docker  push    crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/devops-web:v6.0-arm64
+```
+
+
+
+## 感谢以下同学对本项目提供的打赏
 
 <p align="center">
-  <img src="assets/zanzhu/1.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/4.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/5.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/6.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/7.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/8.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/9.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/10.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/11.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/12.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/13.png" width="100" alt="项目支持者" />
-  <img src="assets/zanzhu/14.png" width="100" alt="项目支持者" />
+  <img src="assets/zanzhu/1.png" width="120" />
+  <img src="assets/zanzhu/4.png" width="120" />
+  <img src="assets/zanzhu/5.png" width="120" />
+  <img src="assets/zanzhu/6.png" width="120" />
+  <img src="assets/zanzhu/7.png" width="120" />
+  <img src="assets/zanzhu/8.png" width="120" />
+  <img src="assets/zanzhu/9.png" width="120" />
+  <img src="assets/zanzhu/10.png" width="120" />
+  <img src="assets/zanzhu/11.png" width="120" />
+  <img src="assets/zanzhu/12.png" width="120" />
+  <img src="assets/zanzhu/13.png" width="120" />
+  <img src="assets/zanzhu/14.png" width="120" />
 </p>
-</details>
+
+## 联系作者
+
+## 技术交流+社区
+- 微信技术交流: zf5391621
+- 建议邮箱: zfwh1024@163.com
+<img src="assets/zf.jpg" width="300" />
+
+#### 加群技术交流
