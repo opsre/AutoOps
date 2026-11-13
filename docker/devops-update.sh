@@ -101,6 +101,27 @@ get_env_value() {
     awk -v key="$key" 'index($0, key "=") == 1 { print substr($0, length(key) + 2); exit }' "$ENV_FILE"
 }
 
+is_valid_port() {
+    local port="$1"
+    [[ "$port" =~ ^[0-9]{1,5}$ ]] || return 1
+    local numeric=$((10#$port))
+    (( numeric >= 1 && numeric <= 65535 ))
+}
+
+resolve_web_port() {
+    local port
+    port="$(docker_cli inspect --format '{{with index .HostConfig.PortBindings "80/tcp"}}{{(index . 0).HostPort}}{{end}}' autoops-web 2>/dev/null || true)"
+    if is_valid_port "$port"; then
+        printf '%s' "$port"
+        return
+    fi
+
+    port="$(get_env_value WEB_PORT)"
+    port="${port:-8088}"
+    is_valid_port "$port" || fail "Web 端口无效: $port"
+    printf '%s' "$port"
+}
+
 set_env_value() {
     local key="$1"
     local value="$2"
@@ -118,6 +139,12 @@ set_env_value() {
     chmod 600 "$temp_file"
     mv "$temp_file" "$ENV_FILE"
 }
+
+WEB_PORT=""
+if [ "$UPDATE_WEB" = true ]; then
+    WEB_PORT="$(resolve_web_port)"
+    export WEB_PORT
+fi
 
 declare -a IMAGES=()
 declare -a SERVICES=()
@@ -138,6 +165,9 @@ fi
 cd "$SCRIPT_DIR"
 echo -e "${GREEN}AutoOps 选择性更新${NC}"
 printf '版本: %s\n组件: %s\n' "$VERSION" "${SERVICES[*]}"
+if [ "$UPDATE_WEB" = true ]; then
+    printf 'Web 端口: %s\n' "$WEB_PORT"
+fi
 
 "${COMPOSE[@]}" config >/dev/null
 
@@ -149,6 +179,7 @@ done
 echo -e "${YELLOW}[2/3] 更新镜像版本配置...${NC}"
 if [ "$UPDATE_WEB" = true ]; then
     set_env_value AUTOOPS_WEB_IMAGE "$WEB_IMAGE"
+    set_env_value WEB_PORT "$WEB_PORT"
 fi
 if [ "$UPDATE_API" = true ]; then
     set_env_value AUTOOPS_API_IMAGE "$API_IMAGE"

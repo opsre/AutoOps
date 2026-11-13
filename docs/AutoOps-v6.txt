@@ -19,4 +19,5 @@ AutoOps v6.0系统更新
 1.修复sudo 安装agent问题
 2.修复 k8s sidecar 采集日志 异常的bug
 3.修复日志采集任务无法删除的bug
+4.修复日志采集器异常删除的bug
 
