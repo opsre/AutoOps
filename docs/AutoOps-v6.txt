@@ -25,12 +25,13 @@ AutoOps v6.0系统更新
 7.修复json日志解析失败的问题
 8.优化cmdb esxi主机数据采集失败问题
 
-
+v6.1
 1.修复mysql5.7采集器认证异常问题
 2.优化交换机监控大屏-显示cpu/内存/温度/在线时间
-3.修复windows-exprot采集器设计架构
+3.优化 windows监控方案，支持内置Windows Exporter监控
 4.修复日志库管理页面显示统计日志库数量不准确的bug
 5.优化aiops模型配置统一走OpenAI 兼容的 Chat Completions 接口
 6.优化后端打印日志显示样式
 7.优化目标主机部署arm agent报错提示，增加异架构选择离线部署的提示
-8.  
+8.优化离线配置部署agent的逻辑
+9.新增gpu监控大屏-支持gpu-大模型一键配置监控
