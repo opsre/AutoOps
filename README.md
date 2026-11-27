@@ -165,8 +165,8 @@ AutoOps 面向同时管理主机、多云资源和 Kubernetes 的运维团队。
 准备一台可访问镜像仓库的 Linux 服务器，安装 Docker 和 Docker Compose。下面使用项目部署指南中的 `v6.0` 镜像版本，将 `192.168.1.100` 替换为浏览器和 Agent 都能访问的服务器地址。
 ```bash
 # 提前拉取基础镜像
-docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/deviops-web:v6.0
-docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/deviops-api:v6.0
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/deviops-web:v6.1
+docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/deviops-api:v6.1
 docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/mysql:8.0.33
 docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/redis:6.2
 docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_k8s/victoria-metrics:latest
@@ -179,7 +179,7 @@ docker pull crpi-aj3vgoxp9kzh2jx4.cn-hangzhou.personal.cr.aliyuncs.com/zhangfan_
 git clone https://github.com/opsre/AutoOps.git
 cd AutoOps/docker
 #启动项目
-./devops-start.sh v6.0 192.168.1.100 8080
+./devops-start.sh v6.1 192.168.1.100 8080
 docker compose ps
 #停止项目
 ./devops-stop.sh
